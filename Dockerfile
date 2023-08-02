@@ -1,11 +1,11 @@
-FROM eclipse-temurin:17-jdk-alpine AS BUILD_IMAGE
+FROM eclipse-temurin:20-jdk-alpine AS BUILD_IMAGE
 ENV APP_HOME /tmp/action
 WORKDIR $APP_HOME
 COPY . $APP_HOME
 RUN chmod +x ./gradlew
 RUN ./gradlew clean build --no-daemon --warn --stacktrace
 
-FROM eclipse-temurin:17-jre-alpine
+FROM eclipse-temurin:20-jre-alpine
 
 RUN apk update && apk add dumb-init
 
