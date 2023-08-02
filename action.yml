@@ -1,0 +1,16 @@
+name: 'Greeter'
+description: 'Greet someone'
+inputs:
+  who_to_greet:
+    description: 'Who to greet'
+    required: true
+    default: 'World'
+outputs:
+  time:
+    description: 'The time we greeted you'
+runs:
+  using: 'docker'
+  image: 'Dockerfile'
+  args:
+    - /opt/action/entrypoint.sh
+    - ${{ inputs.who_to_greet }}
