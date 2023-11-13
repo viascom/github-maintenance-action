@@ -6,7 +6,7 @@ import com.google.gson.annotations.SerializedName
 data class WorkflowRun(
 
     @SerializedName("id")
-    var id: Long,
+    var id: Long? = null,
 
     @SerializedName("name")
     var name: String? = null,
@@ -98,10 +98,16 @@ data class WorkflowRun(
     @SerializedName("head_commit")
     var headCommit: HeadCommit? = HeadCommit(),
 
+    @SerializedName("repository_id")
+    var repositoryId: Long? = null,
+
     @SerializedName("repository")
     var repository: Repository? = Repository(),
 
+    @SerializedName("head_repository_id")
+    var headRepositoryId: Long? = null,
+
     @SerializedName("head_repository")
-    var headRepository: HeadRepository? = HeadRepository()
+    var headRepository: Repository? = Repository()
 
 )

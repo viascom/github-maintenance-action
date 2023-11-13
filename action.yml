@@ -8,20 +8,25 @@ inputs:
     required: true
     default: ${{ github.token }}
 
-  baseUrl:
+  github_base_url:
     description: 'Base API URL'
     required: false
     default: "https://api.github.com"
 
   repository:
-    description: 'Name of the repository'
+    description: 'Name of the repository.'
     required: true
     default: ${{ github.repository }}
 
   retention_days:
-    description: 'Retention time in days of runs to keep'
+    description: 'Retention time in days of runs to keep.'
     required: true
     default: 31
+
+  delete_logs_only:
+    description: 'Deletes only the logs of the workflow runs.'
+    required: false
+    default: false
 
   dry_run:
     description: 'Logs simulated changes, no actions are performed!'
