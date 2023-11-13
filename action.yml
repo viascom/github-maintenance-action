@@ -1,16 +1,45 @@
-name: 'Greeter'
-description: 'Greet someone'
+name: 'Github Maintenance Action'
+description: 'Executing maintenance tasks on Github.'
+author: 'Viascom Ltd liab. Co | Nikola Stanković'
+
 inputs:
-  who_to_greet:
-    description: 'Who to greet'
+  token:
+    description: 'Authentication token'
     required: true
-    default: 'World'
-outputs:
-  time:
-    description: 'The time we greeted you'
+    default: ${{ github.token }}
+
+  baseUrl:
+    description: 'Base API URL'
+    required: false
+    default: "https://api.github.com"
+
+  repository:
+    description: 'Name of the repository'
+    required: true
+    default: ${{ github.repository }}
+
+  retention_days:
+    description: 'Retention time in days of runs to keep'
+    required: true
+    default: 31
+
+  dry_run:
+    description: 'Logs simulated changes, no actions are performed!'
+    required: true
+    default: false
+
+#outputs:
+#  time:
+#    description: 'The time we greeted you'
+
 runs:
   using: 'docker'
   image: 'Dockerfile'
   args:
-    - /opt/action/entrypoint.sh
+    - /opt/action/run_action.sh
     - ${{ inputs.who_to_greet }}
+
+branding:
+  icon: 'settings' # https://feathericons.com/ - https://docs.github.com/en/actions/creating-actions/metadata-syntax-for-github-actions#brandingicon
+  color: 'purple' # The background color of the badge. Can be one of: white, yellow, blue, green, orange, red, purple, or gray-dark.
+

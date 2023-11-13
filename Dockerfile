@@ -1,4 +1,6 @@
-FROM eclipse-temurin:21-jdk-alpine AS BUILD_IMAGE
+# Build-time container
+FROM eclipse-temurin:21-jdk-alpine as builder
+USER root
 ENV APP_HOME /tmp/action
 WORKDIR $APP_HOME
 COPY . $APP_HOME
@@ -6,16 +8,27 @@ RUN chmod +x ./gradlew
 RUN ./gradlew clean build --no-daemon --warn --stacktrace
 
 FROM eclipse-temurin:21-jre-alpine
+# Run-time container
+FROM viascom/jre:17.0.8
 
-RUN apk update && apk add dumb-init
+ARG ACTION_NAME=github-maintenance-action
 
-WORKDIR /opt/action
-COPY --from=BUILD_IMAGE /tmp/action/build/libs/action.jar .
-COPY entrypoint.sh .
-RUN chmod +x /opt/action/entrypoint.sh
+ENV ACTION=$ACTION_NAME \
+    JAVA_HOME=/opt/java \
+    PATH="${JAVA_HOME}/bin:${PATH}"
 
-RUN addgroup -S party && adduser -S exie -G party
-USER exie
+USER root
+WORKDIR /opt/$ACTION
 
-ENTRYPOINT ["/usr/bin/dumb-init", "--"]
-CMD ["/opt/action/entrypoint.sh"]
+COPY run_application.sh /etc
+RUN chmod +x /etc/run_application.sh
+
+## Spring Boot Layers
+COPY --from=builder /tmp/application/spring-boot-loader/ ./
+COPY --from=builder /tmp/application/dependencies/ ./
+COPY --from=builder /tmp/application/snapshot-dependencies/ ./
+COPY --from=builder /tmp/application/application/ ./
+
+USER $USER
+
+CMD ["/etc/run_application.sh"]
