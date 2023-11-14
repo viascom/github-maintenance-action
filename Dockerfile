@@ -9,7 +9,7 @@ RUN ./gradlew clean build --no-daemon --warn --stacktrace
 
 FROM eclipse-temurin:21-jre-alpine
 # Run-time container
-FROM viascom/jre:17.0.8
+FROM viascom/jre:20.0.2
 
 ARG ACTION_NAME=github-maintenance-action
 
