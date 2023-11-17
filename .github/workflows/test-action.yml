@@ -1,4 +1,4 @@
-name: Execute github-maintenance-action Action
+name: GitHub Maintenance
 
 on:
   workflow_dispatch:

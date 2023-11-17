@@ -43,7 +43,7 @@ test {
 }
 
 tasks.withType(KotlinCompile).configureEach {
-    kotlinOptions.jvmTarget = JavaVersion.VERSION_19
+    kotlinOptions.jvmTarget = JavaVersion.VERSION_21
     kotlinOptions.freeCompilerArgs = ["-Xjvm-default=all"]
 }
 
