@@ -6,7 +6,7 @@ import com.google.gson.annotations.SerializedName
 data class WorkflowRun(
 
     @SerializedName("id")
-    var id: Long? = null,
+    var id: Long = 0,
 
     @SerializedName("name")
     var name: String? = null,

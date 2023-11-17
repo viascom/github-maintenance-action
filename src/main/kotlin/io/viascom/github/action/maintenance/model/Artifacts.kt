@@ -6,7 +6,7 @@ import com.google.gson.annotations.SerializedName
 data class Artifacts(
 
     @SerializedName("id")
-    var id: Int? = null,
+    var id: Long = 0,
 
     @SerializedName("node_id")
     var nodeId: String? = null,
