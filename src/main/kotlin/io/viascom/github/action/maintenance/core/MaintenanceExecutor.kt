@@ -30,7 +30,7 @@ class MaintenanceExecutor {
             if (Environment.deleteArtifacts) {
                 val workflowRunArtifacts = githubApi.listWorkflowRunArtifacts(owner, repo, run.id)
                 if (workflowRunArtifacts.totalCount == 0) {
-                    log.info("\uD83D\uDD0D No artifacts found to clean up for workflow run with id ${run.id}")
+                    log.info("\uD83D\uDD0D No artifacts found to clean up for workflow run with id ${run.id}.")
                 } else {
                     workflowRunArtifacts.artifacts.forEach { artifact ->
                         githubApi.deleteArtifact(owner, repo, artifact.id)
