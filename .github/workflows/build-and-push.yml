@@ -21,7 +21,7 @@ on:
 
 jobs:
   build-and-push:
-    runs-on: [self-hosted, linux]
+    runs-on: ubuntu-latest
 
     steps:
       - name: Setup timezone
