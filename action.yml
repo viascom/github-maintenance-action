@@ -60,4 +60,3 @@ runs:
 branding:
   icon: 'settings' # https://feathericons.com/ - https://docs.github.com/en/actions/creating-actions/metadata-syntax-for-github-actions#brandingicon
   color: 'purple' # The background color of the badge. Can be one of: white, yellow, blue, green, orange, red, purple, or gray-dark.
-
