@@ -10,10 +10,13 @@ import okhttp3.Protocol
 import okhttp3.Request
 import okhttp3.Response
 import org.slf4j.LoggerFactory
+import org.springframework.stereotype.Service
 import java.util.concurrent.TimeUnit
 
-
-class GitHubApi(private val baseUrl: String) {
+@Service
+class GitHubApi(
+    private val gson: Gson
+) {
 
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -38,7 +41,7 @@ class GitHubApi(private val baseUrl: String) {
         checkSuiteId: Int? = null,
         headSha: String? = null
     ): WorkflowRuns {
-        val httpUrl = "$baseUrl/repos/$owner/$repo/actions/runs".toHttpUrl().newBuilder()
+        val httpUrl = "${Environment.githubBaseUrl}/repos/$owner/$repo/actions/runs".toHttpUrl().newBuilder()
             .addQueryParameter("per_page", perPage.toString())
             .addQueryParameter("page", page.toString())
 
@@ -56,7 +59,7 @@ class GitHubApi(private val baseUrl: String) {
             .get()
             .build()
 
-        return client.newCall(request).execute().body?.string()?.let { Gson().fromJson(it, WorkflowRuns::class.java) } ?: WorkflowRuns()
+        return client.newCall(request).execute().body?.string()?.let { gson.fromJson(it, WorkflowRuns::class.java) } ?: WorkflowRuns()
     }
 
     fun listWorkflowRuns(
@@ -73,35 +76,36 @@ class GitHubApi(private val baseUrl: String) {
     ): WorkflowRuns {
         val workflowRuns = listWorkflowRuns(owner, repo, actor, branch, event, status, 100, 1, created, excludePullRequests, checkSuiteId, headSha)
         val remaining = workflowRuns.totalCount - 100
-        if (remaining <= 0) {
-            return workflowRuns
+        if (remaining >= 0) {
+            val totalPages = remaining / 100 + 1
+            for (i in 1..totalPages) {
+                workflowRuns.runs.addAll(
+                    listWorkflowRuns(
+                        owner = owner,
+                        repo = repo,
+                        actor = actor,
+                        branch = branch,
+                        event = event,
+                        status = status,
+                        perPage = 100,
+                        page = i + 1,
+                        created = created,
+                        excludePullRequests = excludePullRequests,
+                        checkSuiteId = checkSuiteId,
+                        headSha = headSha
+                    ).runs
+                )
+            }
         }
 
-        val totalPages = remaining / 100 + 1
-        for (i in 1..totalPages) {
-            workflowRuns.runs.addAll(
-                listWorkflowRuns(
-                    owner = owner,
-                    repo = repo,
-                    actor = actor,
-                    branch = branch,
-                    event = event,
-                    status = status,
-                    perPage = 100,
-                    page = i + 1,
-                    created = created,
-                    excludePullRequests = excludePullRequests,
-                    checkSuiteId = checkSuiteId,
-                    headSha = headSha
-                ).runs
-            )
-        }
+        log.info("\uD83D\uDD0D Found ${workflowRuns.runs.size} workflow runs.")
+
         return workflowRuns
     }
 
     fun deleteWorkflowRun(owner: String, repo: String, runId: Long): Response {
         val request = Request.Builder()
-            .url("$baseUrl/repos/$owner/$repo/actions/runs/$runId")
+            .url("${Environment.githubBaseUrl}/repos/$owner/$repo/actions/runs/$runId")
             .delete()
             .build()
 
@@ -119,16 +123,16 @@ class GitHubApi(private val baseUrl: String) {
 
     fun deleteWorkflowRunLogs(owner: String, repo: String, runId: Long): Response {
         val request = Request.Builder()
-            .url("$baseUrl/repos/$owner/$repo/actions/runs/$runId/logs")
+            .url("${Environment.githubBaseUrl}/repos/$owner/$repo/actions/runs/$runId/logs")
             .delete()
             .build()
 
         val response: Response
         if (!Environment.isDryRun) {
             response = client.newCall(request).execute()
-            log.info("\uD83D\uDCC4 Deleted workflow logs for run with id $runId.")
+            log.info("\uD83D\uDCC4 Deleted logs of workflow run $runId.")
         } else {
-            log.info("\uD83E\uDD21 Pretending to deleted workflow logs for run with id $runId.")
+            log.info("\uD83E\uDD21 Pretending to deleted logs of workflow run $runId.")
             response = createMockResponse()
         }
 
@@ -143,18 +147,18 @@ class GitHubApi(private val baseUrl: String) {
         page: Int = 1,
         name: String? = null
     ): WorkflowArtifacts {
-        val httpUrl = "$baseUrl/repos/$owner/$repo/actions/runs/$runId/artifacts".toHttpUrl().newBuilder()
+        val httpUrl = "${Environment.githubBaseUrl}/repos/$owner/$repo/actions/runs/$runId/artifacts".toHttpUrl().newBuilder()
             .addQueryParameter("per_page", perPage.toString())
             .addQueryParameter("page", page.toString())
 
         name?.let { httpUrl.addQueryParameter("name", name) }
 
         val request = Request.Builder()
-            .url("$baseUrl/repos/$owner/$repo/actions/runs/$runId/logs")
+            .url("${Environment.githubBaseUrl}/repos/$owner/$repo/actions/runs/$runId/logs")
             .get()
             .build()
 
-        return client.newCall(request).execute().body?.string()?.let { Gson().fromJson(it, WorkflowArtifacts::class.java) } ?: WorkflowArtifacts()
+        return client.newCall(request).execute().body?.string()?.let { gson.fromJson(it, WorkflowArtifacts::class.java) } ?: WorkflowArtifacts()
     }
 
     fun listWorkflowRunArtifacts(
@@ -164,28 +168,29 @@ class GitHubApi(private val baseUrl: String) {
     ): WorkflowArtifacts {
         val workflowRunArtifacts = listWorkflowRunArtifacts(owner, repo, runId, 100, 1)
         val remaining = workflowRunArtifacts.totalCount - 100
-        if (remaining <= 0) {
-            return workflowRunArtifacts
+        if (remaining >= 0) {
+            val totalPages = remaining / 100 + 1
+            for (i in 1..totalPages) {
+                workflowRunArtifacts.artifacts.addAll(
+                    listWorkflowRunArtifacts(
+                        owner = owner,
+                        repo = repo,
+                        runId = runId,
+                        perPage = 100,
+                        page = i + 1
+                    ).artifacts
+                )
+            }
         }
 
-        val totalPages = remaining / 100 + 1
-        for (i in 1..totalPages) {
-            workflowRunArtifacts.artifacts.addAll(
-                listWorkflowRunArtifacts(
-                    owner = owner,
-                    repo = repo,
-                    runId = runId,
-                    perPage = 100,
-                    page = i + 1
-                ).artifacts
-            )
-        }
+        log.info("\uD83D\uDD0D Found ${workflowRunArtifacts.artifacts.size} artifacts in workflow run $runId.")
+
         return workflowRunArtifacts
     }
 
     fun deleteArtifact(owner: String, repo: String, artifactId: Long): Response {
         val request = Request.Builder()
-            .url("$baseUrl/repos/$owner/$repo/actions/artifacts/$artifactId")
+            .url("${Environment.githubBaseUrl}/repos/$owner/$repo/actions/artifacts/$artifactId")
             .delete()
             .build()
 

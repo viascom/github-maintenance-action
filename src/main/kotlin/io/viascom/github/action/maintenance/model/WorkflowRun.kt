@@ -39,7 +39,7 @@ data class WorkflowRun(
     var displayTitle: String? = null,
 
     @SerializedName("status")
-    var status: String? = null,
+    var status: WorkflowRunStatus? = null,
 
     @SerializedName("conclusion")
     var conclusion: String? = null,

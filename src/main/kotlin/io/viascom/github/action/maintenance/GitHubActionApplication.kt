@@ -8,7 +8,9 @@ import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
 
 @SpringBootApplication
-open class GitHubActionApplication : CommandLineRunner {
+open class GitHubActionApplication(
+    private val maintenanceExecutor: MaintenanceExecutor
+) : CommandLineRunner {
 
     companion object {
         @JvmStatic
@@ -19,6 +21,6 @@ open class GitHubActionApplication : CommandLineRunner {
 
     override fun run(vararg args: String?) {
         val (owner, repo) = Environment.repository.split("/", limit = 2)
-        MaintenanceExecutor().deleteOldActionRuns(owner, repo, Environment.retentionDays)
+        maintenanceExecutor.deleteOldActionRuns(owner, repo, Environment.retentionDays)
     }
 }
