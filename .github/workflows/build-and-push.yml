@@ -73,6 +73,6 @@ jobs:
       - name: Upload github-maintenance-action artifacts to GitHub
         uses: actions/upload-artifact@v3
         with:
-          name: github-maintenance-action-build-libs
-          path: github-maintenance-action/build/libs
+          name: build-libs
+          path: build/libs
           retention-days: 7
