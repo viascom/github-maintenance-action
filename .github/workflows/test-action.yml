@@ -16,6 +16,6 @@ jobs:
         uses: ./ # Uses an action in the root directory
         with:
           retention_days: "90"
-          delete_logs: true
-          delete_artifacts: true
+          delete_logs: false
+          delete_artifacts: false
           dry_run: false
