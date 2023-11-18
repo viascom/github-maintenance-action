@@ -8,3 +8,6 @@ Github Maintenance Action is a GitHub Action designed for automated housekeeping
 * __Log Management:__ Clean up workflow logs to keep your repository efficient and clutter-free.
 * __Artifact Control:__ Configure rules to delete artifacts, helping manage storage space and ensuring only relevant artifacts are retained.
 * __User-Friendly Configuration:__ Set up the action quickly with intuitive parameters, making defining what to clean and when easy.
+
+## Usage
+To use Github Maintenance Action, add it to your .github/workflows directory in your repository. You can customize the action's YAML configuration file settings to suit your project's maintenance needs.
