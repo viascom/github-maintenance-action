@@ -47,7 +47,7 @@ runs:
   using: 'docker'
   image: 'docker://viascom/github-maintenance-action:latest'
   args:
-    - /opt/action/run_application.sh
+    - /etc/run_application.sh
     - ${{ inputs.github_token }}
     - ${{ inputs.github_base_url }}
     - ${{ inputs.repository }}
