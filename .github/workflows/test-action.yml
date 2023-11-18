@@ -5,7 +5,7 @@ on:
 
 jobs:
   github_maintenance:
-    name: Clean up GitHub workflow runs, logs, artifacts
+    name: Clean Workflow Runs
     runs-on: ubuntu-latest
 
     steps:
@@ -16,6 +16,6 @@ jobs:
         uses: ./ # Uses an action in the root directory
         with:
           retention_days: "90"
-          delete_logs: false
-          delete_artifacts: false
-          dry_run: true
+          delete_logs: true
+          delete_artifacts: true
+          dry_run: false
