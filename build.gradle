@@ -17,7 +17,7 @@ bootJar {
 }
 
 application {
-    mainClassName = "io.viascom.github.action.greeter.GitHubActionApplication"
+    mainClassName = "io.viascom.github.action.maintenance.GitHubActionApplication"
 }
 
 springBoot {
