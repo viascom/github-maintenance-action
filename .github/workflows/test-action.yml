@@ -12,9 +12,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Hello world action step
+      - name: Execute maintenance
         uses: ./ # Uses an action in the root directory
-        id: hello
         with:
           retention_days: "90"
           delete_logs: false
