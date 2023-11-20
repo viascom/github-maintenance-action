@@ -1,6 +1,7 @@
 package io.viascom.github.action.maintenance.core
 
 import io.viascom.github.action.maintenance.api.GitHubApi
+import io.viascom.github.action.maintenance.model.WorkflowRunStatus
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.time.LocalDateTime
@@ -20,7 +21,12 @@ class MaintenanceExecutor(
         val workflowRuns = githubApi.listWorkflowRuns(
             owner = owner,
             repo = repo,
+            actors = Environment.actors,
+            branches = Environment.branches,
+            events = Environment.events,
+            statuses = Environment.statuses,
             created = "*..$formattedDate",
+            excludePullRequests = Environment.isExcludePullRequests,
         )
 
         workflowRuns.runs.forEach { run ->
@@ -39,5 +45,9 @@ class MaintenanceExecutor(
                 githubApi.deleteWorkflowRun(owner, repo, run.id)
             }
         }
+    }
+
+    private fun List<WorkflowRunStatus>.toCommaSeparatedString(): String {
+        return this.joinToString(separator = ", ") { it.value }
     }
 }

@@ -19,5 +19,19 @@ enum class WorkflowRunStatus(val value: String) {
     companion object {
         private val map = entries.associateBy(WorkflowRunStatus::value)
         fun fromValue(value: String) = map[value]
+
+        fun fromCommaSeparatedValues(values: String): List<WorkflowRunStatus> {
+            if (values.isBlank()) {
+                return arrayListOf()
+            }
+
+            return values.split(",")
+                .map { it.trim() }
+                .mapNotNull { fromValue(it) }
+        }
+
+        fun toCommaSeparatedString(statuses: List<WorkflowRunStatus>): String {
+            return statuses.joinToString(separator = ", ") { it.value }
+        }
     }
 }

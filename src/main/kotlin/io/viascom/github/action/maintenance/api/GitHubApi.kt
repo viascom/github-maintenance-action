@@ -2,8 +2,7 @@ package io.viascom.github.action.maintenance.api
 
 import com.google.gson.Gson
 import io.viascom.github.action.maintenance.core.Environment
-import io.viascom.github.action.maintenance.model.WorkflowArtifacts
-import io.viascom.github.action.maintenance.model.WorkflowRuns
+import io.viascom.github.action.maintenance.model.*
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Protocol
@@ -65,16 +64,61 @@ class GitHubApi(
     fun listWorkflowRuns(
         owner: String,
         repo: String,
-        actor: String? = null,
-        branch: String? = null,
-        event: String? = null,
-        status: String? = null,
+        actors: List<String>? = null,
+        branches: List<String>? = null,
+        events: List<WorkflowRunEvent>? = null,
+        statuses: List<WorkflowRunStatus>? = null,
         created: String? = null,
         excludePullRequests: Boolean = false,
         checkSuiteId: Int? = null,
         headSha: String? = null
     ): WorkflowRuns {
-        val workflowRuns = listWorkflowRuns(owner, repo, actor, branch, event, status, 100, 1, created, excludePullRequests, checkSuiteId, headSha)
+
+        var requestData = arrayListOf<RequestData>()
+        actors?.let { data -> requestData = populateRequestData(data, requestData) { actor = it } }
+        branches?.let { data -> requestData = populateRequestData(data, requestData) { branch = it } }
+        events?.map { it.value }?.let { data -> requestData = populateRequestData(data, requestData) { event = it } }
+        statuses?.map { it.value }?.let { data -> requestData = populateRequestData(data, requestData) { status = it } }
+
+        if (requestData.isEmpty()) {
+            requestData.add(RequestData())
+        }
+
+        val allWorkflowRuns = requestData.flatMap {
+            listAllWorkflowRuns(owner, repo, it.actor, it.branch, it.event, it.status, created, excludePullRequests, checkSuiteId, headSha).runs
+        }
+
+        return WorkflowRuns(allWorkflowRuns.size, allWorkflowRuns.toCollection(arrayListOf()))
+    }
+
+    private fun populateRequestData(
+        inputData: List<String>,
+        requestData: ArrayList<RequestData>,
+        processor: RequestData.(String) -> Unit
+    ): ArrayList<RequestData> {
+        if (inputData.isEmpty()) return requestData
+
+        return if (requestData.isEmpty()) {
+            inputData.map { RequestData().apply { processor.invoke(this, it) } }
+        } else {
+            requestData.flatMap { data -> inputData.map { data.copy().apply { processor.invoke(this, it) } } }
+        }.toCollection(arrayListOf())
+    }
+
+    private fun listAllWorkflowRuns(
+        owner: String,
+        repo: String,
+        actor: String?,
+        branch: String?,
+        event: String?,
+        status: String?,
+        created: String?,
+        excludePullRequests: Boolean,
+        checkSuiteId: Int?,
+        headSha: String?,
+    ): WorkflowRuns {
+        val workflowRuns =
+            listWorkflowRuns(owner, repo, actor, branch, event, status, 100, 1, created, excludePullRequests, checkSuiteId, headSha)
         val remaining = workflowRuns.totalCount - 100
         if (remaining >= 0) {
             val totalPages = remaining / 100 + 1

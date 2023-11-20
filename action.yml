@@ -1,51 +1,76 @@
-name: 'Github Maintenance Action'
-description: 'Executing maintenance tasks on Github.'
-author: 'Viascom Ltd liab. Co | Nikola Stanković <nikola.stankovic@viascom.email>'
+name: "Github Maintenance Action"
+description: "Executing maintenance tasks on Github."
+author: "Viascom Ltd liab. Co | Nikola Stanković <nikola.stankovic@viascom.email>"
 
 inputs:
   github_token:
-    description: 'Authentication token'
+    description: "Authentication token"
     required: true
     default: ${{ github.token }}
 
   github_base_url:
-    description: 'Base API URL'
+    description: "Base API URL"
     required: false
     default: "https://api.github.com"
 
   repository:
-    description: 'Name of the repository.'
+    description: "Name of the repository."
     required: true
     default: ${{ github.repository }}
 
   retention_days:
-    description: 'Retention time in days of runs to keep.'
+    description: "Retention time in days of runs to keep."
     required: true
     default: 31
 
   delete_logs:
-    description: 'Deletes only the logs of the workflow runs.'
+    description: "Deletes only the logs of the workflow runs."
     required: false
     default: false
 
   delete_artifacts:
-    description: 'Deletes only the artifacts of the workflow runs.'
+    description: "Deletes only the artifacts of the workflow runs."
+    required: false
+    default: false
+
+  actors:
+    description: "Comma-separated list of actors of the workflow runs to be deleted."
+    required: false
+    default: ""
+
+  branches:
+    description: "Comma-separated list of branches of the workflow runs to be deleted."
+    required: false
+    default: ""
+
+  events:
+    description: "Comma-separated list of events of the workflow runs to be deleted."
+    required: false
+    default: ""
+
+  statuses:
+    description: "Comma-separated list of statuses of the workflow runs to be deleted."
+    required: false
+    default: ""
+
+  exclude_pull_requests:
+    description: "If set to true, it will exclude pull request workflow runs."
     required: false
     default: false
 
   dry_run:
-    description: 'Logs simulated changes, no actions are performed!'
+    description: "Logs simulated changes, no actions are performed!"
     required: false
     default: false
 
   debug:
-    description: 'When debug is enabled more logs will be printed.'
+    description: "When debug is enabled more logs will be printed."
     required: false
     default: false
 
 runs:
-  using: 'docker'
-  image: 'docker://viascom/github-maintenance-action:latest'
+  using: "docker"
+  image: "docker://viascom/github-maintenance-action:latest"
   args:
     - /etc/run_application.sh
     - ${{ inputs.github_token }}
@@ -54,9 +79,14 @@ runs:
     - ${{ inputs.retention_days }}
     - ${{ inputs.delete_logs }}
     - ${{ inputs.delete_artifacts }}
+    - ${{ inputs.actors }}
+    - ${{ inputs.branches }}
+    - ${{ inputs.events }}
+    - ${{ inputs.statuses }}
+    - ${{ inputs.exclude_pull_requests }}
     - ${{ inputs.dry_run }}
     - ${{ inputs.debug }}
 
 branding:
-  icon: 'settings' # https://feathericons.com/ - https://docs.github.com/en/actions/creating-actions/metadata-syntax-for-github-actions#brandingicon
-  color: 'purple' # The background color of the badge. Can be one of: white, yellow, blue, green, orange, red, purple, or gray-dark.
+  icon: "settings" # https://feathericons.com/ - https://docs.github.com/en/actions/creating-actions/metadata-syntax-for-github-actions#brandingicon
+  color: "purple" # The background color of the badge. Can be one of: white, yellow, blue, green, orange, red, purple, or gray-dark.

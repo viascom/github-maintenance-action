@@ -2,7 +2,6 @@ package io.viascom.github.action.maintenance
 
 import io.viascom.github.action.maintenance.core.Environment
 import io.viascom.github.action.maintenance.core.MaintenanceExecutor
-import org.slf4j.LoggerFactory
 import org.springframework.boot.CommandLineRunner
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
