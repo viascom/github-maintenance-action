@@ -46,8 +46,4 @@ class MaintenanceExecutor(
             }
         }
     }
-
-    private fun List<WorkflowRunStatus>.toCommaSeparatedString(): String {
-        return this.joinToString(separator = ", ") { it.value }
-    }
 }

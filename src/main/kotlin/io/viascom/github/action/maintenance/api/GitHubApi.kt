@@ -77,8 +77,8 @@ class GitHubApi(
         var requestData = arrayListOf<RequestData>()
         actors?.let { data -> requestData = populateRequestData(data, requestData) { actor = it } }
         branches?.let { data -> requestData = populateRequestData(data, requestData) { branch = it } }
-        events?.map { it.value }?.let { data -> requestData = populateRequestData(data, requestData) { event = it } }
-        statuses?.map { it.value }?.let { data -> requestData = populateRequestData(data, requestData) { status = it } }
+        events?.map { it.name }?.let { data -> requestData = populateRequestData(data, requestData) { event = it } }
+        statuses?.map { it.name }?.let { data -> requestData = populateRequestData(data, requestData) { status = it } }
 
         if (requestData.isEmpty()) {
             requestData.add(RequestData())

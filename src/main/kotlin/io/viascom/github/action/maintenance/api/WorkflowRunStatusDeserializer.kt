@@ -7,7 +7,7 @@ import io.viascom.github.action.maintenance.model.WorkflowRunStatus
 import java.lang.reflect.Type
 
 class WorkflowRunStatusDeserializer : JsonDeserializer<WorkflowRunStatus> {
-    override fun deserialize(json: JsonElement?, typeOfT: Type?, context: JsonDeserializationContext?): WorkflowRunStatus {
-        return json!!.asString.let { WorkflowRunStatus.fromValue(it)!! }
+    override fun deserialize(json: JsonElement, typeOfT: Type, context: JsonDeserializationContext): WorkflowRunStatus {
+        return json.asString.let { value -> WorkflowRunStatus.entries.first { it.name == value.uppercase() } }
     }
 }
