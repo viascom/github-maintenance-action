@@ -1,6 +1,8 @@
 # Github-Maintenance-Action
 
-Github Maintenance Action is a GitHub Action designed for automated housekeeping of your GitHub repositories. It offers configurable maintenance tasks such as deleting workflow runs, logs, and artifacts. The action is highly flexible, allowing users to specify what to clean and when aligning with individual project needs.
+Github Maintenance Action is a GitHub Action designed for automated housekeeping of your GitHub repositories. It offers
+configurable maintenance tasks such as deleting workflow runs, logs, and artifacts. The action is highly flexible,
+allowing users to specify what to clean and when aligning with individual project needs.
 
 ## Key Features
 
@@ -10,4 +12,80 @@ Github Maintenance Action is a GitHub Action designed for automated housekeeping
 * __User-Friendly Configuration:__ Set up the action quickly with intuitive parameters, making defining what to clean and when easy.
 
 ## Usage
-To use Github Maintenance Action, add it to your .github/workflows directory in your repository. You can customize the action's YAML configuration file settings to suit your project's maintenance needs.
+
+To use Github Maintenance Action, add it to your .github/workflows directory in your repository. You can customize the
+action's YAML configuration file settings to suit your project's maintenance needs.
+
+```yaml
+name: GitHub Maintenance
+on:
+  schedule:
+    - cron: '0 3 * * *' # Run daily at 03:00
+
+jobs:
+  github_maintenance:
+    name: Execute Maintenance
+    runs-on: ubuntu-latest
+    
+    permissions:
+      actions: write
+      
+    steps:
+      - name: Delete workflow runs
+        uses: viascom/github-maintenance-action@v1
+```
+
+## Configuration
+
+| Input Name              | Description                                                          | Default Value              |
+|-------------------------|----------------------------------------------------------------------|----------------------------|
+| `github_token`          | Authentication token                                                 | `${{ github.token }}`      |
+| `github_base_url`       | Base API URL                                                         | `https://api.github.com`   |
+| `repository`            | Name of the repository.                                              | `${{ github.repository }}` |
+| `retention_days`        | Retention time in days of runs to keep.                              | 31                         |
+| `keep_minimum_runs`     | Minimum workflow runs to keep.                                       | 5                          |
+| `delete_logs`           | Deletes only the logs of the workflow runs.                          | false                      |
+| `delete_artifacts`      | Deletes only the artifacts of the workflow runs.                     | false                      |
+| `actors`                | Comma-separated list of actors of the workflow runs to be deleted.   | null                       |
+| `branches`              | Comma-separated list of branches of the workflow runs to be deleted. | null                       |
+| `events`                | Comma-separated list of events of the workflow runs to be deleted.   | null                       |
+| `statuses`              | Comma-separated list of statuses of the workflow runs to be deleted. | null                       |
+| `exclude_pull_requests` | If set to true, it will exclude pull request workflow runs.          | false                      |
+| `dry_run`               | Logs simulated changes, no actions are performed!                    | false                      |
+| `debug`                 | When debug is enabled more logs will be printed.                     | false                      |
+
+## Example with all configurations
+
+```yaml
+name: GitHub Maintenance
+on:
+  schedule:
+    - cron: '0 3 * * *' # Run daily at 03:00
+
+jobs:
+  github_maintenance:
+    name: Execute Maintenance
+    runs-on: ubuntu-latest
+
+    permissions:
+      actions: write
+
+    steps:
+      - name: Delete workflow runs
+        uses: viascom/github-maintenance-action@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          github_base_url: 'https://api.github.com'
+          repository: ${{ github.repository }}
+          retention_days: 31
+          keep_minimum_runs: 5
+          delete_logs: false
+          delete_artifacts: false
+          actors: 'nik-sta, itsmefox'
+          branches: 'main, develop'
+          events: 'push, workflow_dispatch'
+          statuses: 'failure'
+          exclude_pull_requests: false
+          dry_run: false
+          debug: false
+```

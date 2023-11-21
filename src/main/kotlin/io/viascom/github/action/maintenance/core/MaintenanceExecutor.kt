@@ -1,7 +1,6 @@
 package io.viascom.github.action.maintenance.core
 
 import io.viascom.github.action.maintenance.api.GitHubApi
-import io.viascom.github.action.maintenance.model.WorkflowRunStatus
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.time.LocalDateTime
@@ -14,9 +13,17 @@ class MaintenanceExecutor(
 
     private val log = LoggerFactory.getLogger(javaClass)
 
-    fun deleteOldActionRuns(owner: String, repo: String, retentionDays: Long) {
+    fun deleteOldActionRuns(owner: String, repo: String, retentionDays: Int) {
+        val allWorkflowRuns = githubApi.listWorkflowRuns(
+            owner = owner,
+            repo = repo,
+        )
+
+        if (allWorkflowRuns.totalCount <= Environment.keepMinimumRuns) return
+        val runsToKeep = allWorkflowRuns.runs.take(Environment.keepMinimumRuns).map { it.id }.toSet()
+
         val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
-        val formattedDate = LocalDateTime.now().minusDays(retentionDays).format(formatter)
+        val formattedDate = LocalDateTime.now().minusDays(retentionDays.toLong()).format(formatter)
 
         val workflowRuns = githubApi.listWorkflowRuns(
             owner = owner,
@@ -29,7 +36,9 @@ class MaintenanceExecutor(
             excludePullRequests = Environment.isExcludePullRequests,
         )
 
-        workflowRuns.runs.forEach { run ->
+        val runsToProcess = workflowRuns.runs.filter { it.id !in runsToKeep }
+
+        runsToProcess.forEach { run ->
             if (Environment.deleteLogs) {
                 githubApi.deleteWorkflowRunLogs(owner, repo, run.id)
             }
