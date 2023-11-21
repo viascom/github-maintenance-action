@@ -9,6 +9,7 @@ object Environment {
     val githubBaseUrl: String = System.getenv("INPUT_GITHUB_BASE_URL")
     val repository: String = System.getenv("INPUT_REPOSITORY")
     val retentionDays = System.getenv("INPUT_RETENTION_DAYS").toLong()
+    val keepMinimumRuns = System.getenv("INPUT_KEEP_MINIMUM_RUNS").toLong()
     val deleteLogs = System.getenv("INPUT_DELETE_LOGS").toBoolean()
     val deleteArtifacts = System.getenv("INPUT_DELETE_ARTIFACTS").toBoolean()
     val actors: List<String> = System.getenv("INPUT_ACTORS").split(",").map(String::trim).filter { it.isNotBlank() }

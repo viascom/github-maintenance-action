@@ -23,6 +23,11 @@ inputs:
     required: true
     default: 31
 
+  keep_minimum_runs:
+    description: "Minimum workflow runs to keep."
+    required: true
+    default: 5
+
   delete_logs:
     description: "Deletes only the logs of the workflow runs."
     required: false
@@ -77,6 +82,7 @@ runs:
     - ${{ inputs.github_base_url }}
     - ${{ inputs.repository }}
     - ${{ inputs.retention_days }}
+    - ${{ inputs.keep_minimum_runs }}
     - ${{ inputs.delete_logs }}
     - ${{ inputs.delete_artifacts }}
     - ${{ inputs.actors }}
