@@ -3,7 +3,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 plugins {
     id "idea"
     id "application"
-    id "org.jetbrains.kotlin.jvm" version "1.9.20"
+    id "org.jetbrains.kotlin.jvm" version "1.9.21"
     id "io.spring.dependency-management" version "1.1.4"
     id "org.springframework.boot" version "3.1.5"
     id "com.palantir.docker" version "0.35.0"
