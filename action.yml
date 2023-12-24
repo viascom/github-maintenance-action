@@ -75,7 +75,7 @@ inputs:
 
 runs:
   using: "docker"
-  image: "docker://viascom/github-maintenance-action:latest"
+  image: "docker://viascom/github-maintenance-action:0.0.1"
   args:
     - /etc/run_application.sh
     - ${{ inputs.github_token }}

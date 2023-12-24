@@ -10,7 +10,7 @@ plugins {
 }
 
 group = "io.viascom.github.action.maintenance"
-version "1.0.0"
+version "0.0.1"
 
 bootJar {
     archiveFileName = "github-maintenance-action.jar"
