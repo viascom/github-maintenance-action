@@ -11,7 +11,7 @@ REQUIRED_JAVA_MODULES="$(jdeps \
                             --print-module-deps \
                             --ignore-missing-deps \
                             --recursive \
-                            --multi-release 17 \
+                            --multi-release 21 \
                             --class-path="./BOOT-INF/lib/*" \
                             --module-path="./BOOT-INF/lib/*" \
                             ./application.jar),jdk.crypto.ec"
