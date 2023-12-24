@@ -8,7 +8,7 @@ COPY build_application.sh ./
 RUN bash build_application.sh
 
 # Run-time container
-FROM viascom/alpine:3.18.4
+FROM viascom/alpine:3.19.0
 
 ARG APP_NAME=github-maintenance-action
 ARG LOG_FOLDER=/srv/github-maintenance-action/logs

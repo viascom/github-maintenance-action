@@ -4,4 +4,4 @@ JAVA_OPTS="${JAVA_OPTS:="-Dfile.encoding=UTF-8 -Duser.timezone=UTC -XX:NativeMem
 
 cd /srv/"$APP" || exit
 
-/opt/java/bin/java $JAVA_OPTS org.springframework.boot.loader.JarLauncher
+/opt/java/bin/java $JAVA_OPTS org.springframework.boot.loader.launch.JarLauncher
