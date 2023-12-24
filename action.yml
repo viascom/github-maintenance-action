@@ -58,8 +58,8 @@ inputs:
     required: false
     default: ""
 
-  exclude_pull_requests:
-    description: "If set to true, it will exclude pull request workflow runs."
+  keep_pull_requests:
+    description: "If set to true, it will keep pull request workflow runs."
     required: false
     default: false
 
@@ -89,7 +89,7 @@ runs:
     - ${{ inputs.branches }}
     - ${{ inputs.events }}
     - ${{ inputs.statuses }}
-    - ${{ inputs.exclude_pull_requests }}
+    - ${{ inputs.keep_pull_requests }}
     - ${{ inputs.dry_run }}
     - ${{ inputs.debug }}
 

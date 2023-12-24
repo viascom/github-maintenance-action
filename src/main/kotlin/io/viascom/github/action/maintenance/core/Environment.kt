@@ -16,7 +16,7 @@ object Environment {
     val branches: List<String> = System.getenv("INPUT_BRANCHES").split(",").map(String::trim).filter { it.isNotBlank() }
     val events: List<WorkflowRunEvent> = System.getenv("INPUT_EVENTS").fromCommaSeparatedValues()
     val statuses: List<WorkflowRunStatus> = System.getenv("INPUT_STATUSES").fromCommaSeparatedValues()
-    val isExcludePullRequests = System.getenv("INPUT_EXCLUDE_PULL_REQUESTS").toBoolean()
+    val isKeepPullRequests = System.getenv("INPUT_KEEP_PULL_REQUESTS").toBoolean()
     val isDryRun = System.getenv("INPUT_DRY_RUN").toBoolean()
     val isDebug = System.getenv("INPUT_DEBUG").toBoolean()
 }

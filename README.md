@@ -19,9 +19,9 @@ action's YAML configuration file settings to suit your project's maintenance nee
 ```yaml
 name: GitHub Maintenance
 on:
-  workflow_dispatch:  # To be able to run manually.
+  workflow_dispatch: # To be able to run manually.
   schedule:
-    - cron: '0 3 * * *' # Run daily at 03:00
+    - cron: '0 3 * * *' # Run daily at 03:00.
 
 jobs:
   github_maintenance:
@@ -38,22 +38,22 @@ jobs:
 
 ## Configuration
 
-| Input Name              | Description                                                          | Default Value              |
-|-------------------------|----------------------------------------------------------------------|----------------------------|
-| `github_token`          | Authentication token                                                 | `${{ github.token }}`      |
-| `github_base_url`       | Base API URL                                                         | `https://api.github.com`   |
-| `repository`            | Name of the repository.                                              | `${{ github.repository }}` |
-| `retention_days`        | Retention time in days of runs to keep.                              | 31                         |
-| `keep_minimum_runs`     | Minimum workflow runs to keep.                                       | 5                          |
-| `delete_logs`           | Deletes only the logs of the workflow runs.                          | false                      |
-| `delete_artifacts`      | Deletes only the artifacts of the workflow runs.                     | false                      |
-| `actors`                | Comma-separated list of actors of the workflow runs to be deleted.   | null                       |
-| `branches`              | Comma-separated list of branches of the workflow runs to be deleted. | null                       |
-| `events`                | Comma-separated list of events of the workflow runs to be deleted.   | null                       |
-| `statuses`              | Comma-separated list of statuses of the workflow runs to be deleted. | null                       |
-| `exclude_pull_requests` | If set to true, it will exclude pull request workflow runs.          | false                      |
-| `dry_run`               | Logs simulated changes, no actions are performed!                    | false                      |
-| `debug`                 | When debug is enabled more logs will be printed.                     | false                      |
+| Input Name               | Description                                                          | Default Value              |
+|--------------------------|----------------------------------------------------------------------|----------------------------|
+| `github_token`           | Authentication token                                                 | `${{ github.token }}`      |
+| `github_base_url`        | Base API URL                                                         | `https://api.github.com`   |
+| `repository`             | Name of the repository.                                              | `${{ github.repository }}` |
+| `retention_days`         | Retention time in days of runs to keep.                              | 31                         |
+| `keep_minimum_runs`      | Minimum workflow runs to keep.                                       | 5                          |
+| `delete_logs`            | Deletes only the logs of the workflow runs.                          | false                      |
+| `delete_artifacts`       | Deletes only the artifacts of the workflow runs.                     | false                      |
+| `actors`                 | Comma-separated list of actors of the workflow runs to be deleted.   | null                       |
+| `branches`               | Comma-separated list of branches of the workflow runs to be deleted. | null                       |
+| `events`                 | Comma-separated list of events of the workflow runs to be deleted.   | null                       |
+| `statuses`               | Comma-separated list of statuses of the workflow runs to be deleted. | null                       |
+| `keep_pull_request_runs` | If set to true, it will keep pull request workflow runs.             | false                      |
+| `dry_run`                | Logs simulated changes, no actions are performed!                    | false                      |
+| `debug`                  | When debug is enabled more logs will be printed.                     | false                      |
 
 ## Example with all configurations
 
@@ -73,7 +73,7 @@ jobs:
 
     steps:
       - name: Delete workflow runs
-        uses: viascom/github-maintenance-action@v1
+        uses: viascom/github-maintenance-action@v0.0.1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           github_base_url: 'https://api.github.com'
@@ -86,7 +86,7 @@ jobs:
           branches: 'main, develop'
           events: 'push, workflow_dispatch'
           statuses: 'failure'
-          exclude_pull_requests: false
+          keep_pull_requests: false
           dry_run: false
           debug: false
 ```

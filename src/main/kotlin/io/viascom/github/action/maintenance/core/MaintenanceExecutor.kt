@@ -33,7 +33,7 @@ class MaintenanceExecutor(
             events = Environment.events,
             statuses = Environment.statuses,
             created = "*..$formattedDate",
-            excludePullRequests = Environment.isExcludePullRequests,
+            keepPullRequests = Environment.isKeepPullRequests,
         )
 
         val runsToProcess = workflowRuns.runs.filter { it.id !in runsToKeep }

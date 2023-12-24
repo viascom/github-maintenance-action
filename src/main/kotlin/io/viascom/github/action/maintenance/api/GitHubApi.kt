@@ -24,6 +24,7 @@ class GitHubApi(
         .writeTimeout(60, TimeUnit.SECONDS)
         .readTimeout(60, TimeUnit.SECONDS)
         .addInterceptor(GitHubApiInterceptor())
+        .addInterceptor(RateLimitingInterceptor())
         .build()
 
     private fun listWorkflowRuns(
@@ -36,7 +37,7 @@ class GitHubApi(
         perPage: Int = 100, // max. 100, default 30
         page: Int = 1,
         created: String? = null,
-        excludePullRequests: Boolean = false,
+        keepPullRequests: Boolean = false,
         checkSuiteId: Int? = null,
         headSha: String? = null
     ): WorkflowRuns {
@@ -49,7 +50,7 @@ class GitHubApi(
         event?.let { httpUrl.addQueryParameter("event", event) }
         status?.let { httpUrl.addQueryParameter("status", status) }
         created?.let { httpUrl.addQueryParameter("created", created) }
-        excludePullRequests.let { httpUrl.addQueryParameter("exclude_pull_requests", excludePullRequests.toString()) }
+        keepPullRequests.let { httpUrl.addQueryParameter("keep_pull_requests", keepPullRequests.toString()) }
         checkSuiteId?.let { httpUrl.addQueryParameter("check_suite_id", checkSuiteId.toString()) }
         headSha?.let { httpUrl.addQueryParameter("head_sha", headSha) }
 
@@ -69,7 +70,7 @@ class GitHubApi(
         events: List<WorkflowRunEvent>? = null,
         statuses: List<WorkflowRunStatus>? = null,
         created: String? = null,
-        excludePullRequests: Boolean = false,
+        keepPullRequests: Boolean = false,
         checkSuiteId: Int? = null,
         headSha: String? = null
     ): WorkflowRuns {
@@ -85,7 +86,18 @@ class GitHubApi(
         }
 
         val allWorkflowRuns = requestData.flatMap {
-            listAllWorkflowRuns(owner, repo, it.actor, it.branch, it.event, it.status, created, excludePullRequests, checkSuiteId, headSha).runs
+            listAllWorkflowRuns(
+                owner,
+                repo,
+                it.actor,
+                it.branch,
+                it.event,
+                it.status,
+                created,
+                keepPullRequests,
+                checkSuiteId,
+                headSha
+            ).runs
         }
 
         return WorkflowRuns(allWorkflowRuns.size, allWorkflowRuns.toCollection(arrayListOf()))
@@ -113,12 +125,12 @@ class GitHubApi(
         event: String?,
         status: String?,
         created: String?,
-        excludePullRequests: Boolean,
+        keepPullRequests: Boolean,
         checkSuiteId: Int?,
         headSha: String?,
     ): WorkflowRuns {
         val workflowRuns =
-            listWorkflowRuns(owner, repo, actor, branch, event, status, 100, 1, created, excludePullRequests, checkSuiteId, headSha)
+            listWorkflowRuns(owner, repo, actor, branch, event, status, 100, 1, created, keepPullRequests, checkSuiteId, headSha)
         val remaining = workflowRuns.totalCount - 100
         if (remaining >= 0) {
             val totalPages = remaining / 100 + 1
@@ -134,7 +146,7 @@ class GitHubApi(
                         perPage = 100,
                         page = i + 1,
                         created = created,
-                        excludePullRequests = excludePullRequests,
+                        keepPullRequests = keepPullRequests,
                         checkSuiteId = checkSuiteId,
                         headSha = headSha
                     ).runs
