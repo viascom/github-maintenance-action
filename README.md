@@ -19,6 +19,7 @@ action's YAML configuration file settings to suit your project's maintenance nee
 ```yaml
 name: GitHub Maintenance
 on:
+  workflow_dispatch:  # To be able to run manually.
   schedule:
     - cron: '0 3 * * *' # Run daily at 03:00
 
@@ -32,7 +33,7 @@ jobs:
       
     steps:
       - name: Delete workflow runs
-        uses: viascom/github-maintenance-action@v1
+        uses: viascom/github-maintenance-action@v0.0.1
 ```
 
 ## Configuration
