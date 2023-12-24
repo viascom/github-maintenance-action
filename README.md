@@ -60,8 +60,9 @@ jobs:
 ```yaml
 name: GitHub Maintenance
 on:
+  workflow_dispatch: # To be able to run manually.
   schedule:
-    - cron: '0 3 * * *' # Run daily at 03:00
+    - cron: '0 3 * * *' # Run daily at 03:00.
 
 jobs:
   github_maintenance:
