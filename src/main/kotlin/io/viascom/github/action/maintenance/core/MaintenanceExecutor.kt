@@ -3,6 +3,7 @@ package io.viascom.github.action.maintenance.core
 import io.viascom.github.action.maintenance.api.GitHubApi
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
+import java.time.Duration
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -14,6 +15,7 @@ class MaintenanceExecutor(
     private val log = LoggerFactory.getLogger(javaClass)
 
     fun deleteOldActionRuns(owner: String, repo: String, retentionDays: Int) {
+
         val allWorkflowRuns = githubApi.listWorkflowRuns(
             owner = owner,
             repo = repo,
@@ -52,6 +54,7 @@ class MaintenanceExecutor(
 
             if (!Environment.deleteLogs && !Environment.deleteArtifacts) {
                 githubApi.deleteWorkflowRun(owner, repo, run.id)
+                Thread.sleep(Duration.ofSeconds(1))
             }
         }
     }

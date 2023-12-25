@@ -27,6 +27,26 @@ class GitHubApi(
         .addInterceptor(RateLimitingInterceptor())
         .build()
 
+    fun rateLimit(): RateLimit {
+        val client = OkHttpClient.Builder()
+            .connectTimeout(60, TimeUnit.SECONDS)
+            .writeTimeout(60, TimeUnit.SECONDS)
+            .readTimeout(60, TimeUnit.SECONDS)
+            .addInterceptor(GitHubApiInterceptor())
+            .build()
+
+
+        val httpUrl = ("${Environment.githubBaseUrl}/rate_limit").toHttpUrl().newBuilder()
+
+        val request = Request.Builder()
+            .url(httpUrl.build())
+            .get()
+            .build()
+
+        return client.newCall(request).execute().body?.string()?.let { gson.fromJson(it, RateLimit::class.java) }
+            ?: throw RuntimeException("Could not load rate limits from GitHub!")
+    }
+
     private fun listWorkflowRuns(
         owner: String,
         repo: String,

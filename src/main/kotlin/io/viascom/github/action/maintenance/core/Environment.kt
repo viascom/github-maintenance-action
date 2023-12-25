@@ -1,5 +1,6 @@
 package io.viascom.github.action.maintenance.core
 
+import io.github.bucket4j.Bucket
 import io.viascom.github.action.maintenance.model.WorkflowRunEvent
 import io.viascom.github.action.maintenance.model.WorkflowRunStatus
 import io.viascom.github.action.maintenance.util.fromCommaSeparatedValues
@@ -19,4 +20,6 @@ object Environment {
     val isKeepPullRequests = System.getenv("INPUT_KEEP_PULL_REQUESTS").toBoolean()
     val isDryRun = System.getenv("INPUT_DRY_RUN").toBoolean()
     val isDebug = System.getenv("INPUT_DEBUG").toBoolean()
+
+    lateinit var rateLimiter: Bucket
 }
