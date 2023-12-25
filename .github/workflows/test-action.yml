@@ -14,13 +14,3 @@ jobs:
 
       - name: Execute maintenance
         uses: ./ # Uses an action in the root directory
-        with:
-          retention_days: "90"
-          delete_logs: false
-          delete_artifacts: false
-          dry_run: false
-          branches: "master, develop"
-          statuses: "completed, aborted, failed"
-
-      - name: Execute maintenance
-        uses: ./ # Uses an action in the root directory
