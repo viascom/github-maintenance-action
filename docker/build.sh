@@ -92,10 +92,12 @@ docker_auth() {
   info "$action into $registry with username $username..."
   if [ "$action" == "login" ]; then
     if ! echo "$password" | docker login "$registry" -u "$username" --password-stdin; then
-      error "Docker $action to $registry failed!"
+      error "Docker $action to $registry failed! :("
     fi
   elif [ "$action" == "logout" ]; then
-    docker logout "$registry"
+    if ! docker logout "$registry"; then
+      error "Docker $action to $registry failed! :("
+    fi
   fi
 }
 
@@ -104,6 +106,7 @@ generate_tags() {
   local org=$2
   local image=$3
   local tag=$4
+
   echo "$registry/$org/$image:$tag"
 }
 
@@ -144,12 +147,11 @@ build_image() {
     "."
   )
 
-  info "Starting Docker buildx build..."
+  info "Starting Docker buildx build ..."
   setup_buildx
 
-  # Execute Docker build command with the constructed argument list
   if ! docker buildx build "${build_args[@]}"; then
-    error "Docker buildx build failed"
+    error "Docker buildx build failed! :("
   fi
 
   info "Docker buildx build completed successfully :)"
