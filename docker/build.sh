@@ -52,6 +52,7 @@ readonly DATADOG_ENVIRONMENT="master"
 # Script Configuration
 readonly PULL_PUSHED_IMAGES=true
 readonly TEARDOWN_BUILDX=true
+readonly INITIAL_BUILDER=$(docker buildx ls | grep '\*' | awk '{print $1}')
 
 # Application Configuration
 readonly JAR_FILE_PATH="github-maintenance-action.jar"
@@ -77,11 +78,7 @@ teardown_buildx() {
     docker buildx rm $builder
   fi
 
-  if ! docker buildx ls | grep -q "default"; then
-    docker buildx create --name default --use
-  else
-    docker context use default
-  fi
+  docker context use "$INITIAL_BUILDER"
 
   info "Docker buildx teardown completed for builder: $builder"
 }
