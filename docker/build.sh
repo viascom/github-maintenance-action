@@ -74,7 +74,7 @@ teardown_buildx() {
   if ! docker buildx ls | grep -q "default"; then
     docker buildx create --name default --use
   else
-    docker buildx use default
+    docker context use default
   fi
 }
 
