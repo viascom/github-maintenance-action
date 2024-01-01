@@ -51,24 +51,30 @@ readonly DATADOG_ENVIRONMENT="master"
 
 # Script Configuration
 readonly PULL_PUSHED_IMAGES=true
-readonly TEARDOWN_BUILDX=false
+readonly TEARDOWN_BUILDX=true
 
 # Application Configuration
 readonly JAR_FILE_PATH="github-maintenance-action.jar"
 
 setup_buildx() {
-  if ! docker buildx ls | grep -q "multiarch-builder"; then
-    docker buildx create --name multiarch-builder --use
+  local builder="multiarch-builder"
+
+  if ! docker buildx ls | grep -q "$builder"; then
+    docker buildx create --name $builder --use
     docker buildx inspect --bootstrap
   else
-    docker buildx use multiarch-builder
+    docker buildx use $builder
   fi
+
+  info "Docker buildx setup completed for builder: $builder"
 }
 
 teardown_buildx() {
-  if docker buildx ls | grep -q "multiarch-builder"; then
-    docker buildx stop multiarch-builder
-    docker buildx rm multiarch-builder
+  local builder="multiarch-builder"
+
+  if docker buildx ls | grep -q "$builder"; then
+    docker buildx stop $builder
+    docker buildx rm $builder
   fi
 
   if ! docker buildx ls | grep -q "default"; then
@@ -76,6 +82,8 @@ teardown_buildx() {
   else
     docker context use default
   fi
+
+  info "Docker buildx teardown completed for builder: $builder"
 }
 
 docker_auth() {
@@ -119,23 +127,23 @@ build_image() {
   done
 
   build_args+=(
-    "--label" "org.opencontainers.image.created=$BUILD_DATE"
-    "--label" "org.opencontainers.image.authors=$AUTHORS"
-    "--label" "org.opencontainers.image.url=$IMAGE_URL"
-    "--label" "org.opencontainers.image.documentation=$DOCUMENTATION_URL"
-    "--label" "org.opencontainers.image.source=$SOURCE_URL"
-    "--label" "org.opencontainers.image.version=$VERSION"
-    "--label" "org.opencontainers.image.revision=$GIT_REVISION"
-    "--label" "org.opencontainers.image.vendor=$VENDOR"
-    "--label" "org.opencontainers.image.licenses=$LICENSES"
-    "--label" "org.opencontainers.image.ref.name=$REF_NAME"
-    "--label" "org.opencontainers.image.title=$TITLE"
-    "--label" "org.opencontainers.image.description=$DESCRIPTION"
-    "--label" "org.opencontainers.image.base.digest=$BASE_DIGEST"
-    "--label" "org.opencontainers.image.base.name=$BASE_IMAGE"
-    "--label" "com.datadoghq.tags.service=$DATADOG_SERVICE_NAME"
-    "--label" "com.datadoghq.tags.env=$DATADOG_ENVIRONMENT"
-    "--label" "com.datadoghq.tags.version=$VERSION"
+    "--label" "org.opencontainers.image.created=${BUILD_DATE:-}"
+    "--label" "org.opencontainers.image.authors=${AUTHORS:-}"
+    "--label" "org.opencontainers.image.url=${IMAGE_URL:-}"
+    "--label" "org.opencontainers.image.documentation=${DOCUMENTATION_URL:-}"
+    "--label" "org.opencontainers.image.source=${SOURCE_URL:-}"
+    "--label" "org.opencontainers.image.version=${VERSION:-}"
+    "--label" "org.opencontainers.image.revision=${GIT_REVISION:-}"
+    "--label" "org.opencontainers.image.vendor=${VENDOR:-}"
+    "--label" "org.opencontainers.image.licenses=${LICENSES:-}"
+    "--label" "org.opencontainers.image.ref.name=${REF_NAME:-}"
+    "--label" "org.opencontainers.image.title=${TITLE:-}"
+    "--label" "org.opencontainers.image.description=${DESCRIPTION:-}"
+    "--label" "org.opencontainers.image.base.digest=${BASE_DIGEST:-}"
+    "--label" "org.opencontainers.image.base.name=${BASE_IMAGE:-}"
+    "--label" "com.datadoghq.tags.service=${DATADOG_SERVICE_NAME:-}"
+    "--label" "com.datadoghq.tags.env=${DATADOG_ENVIRONMENT:-}"
+    "--label" "com.datadoghq.tags.version=${VERSION:-}"
     "."
   )
 
