@@ -14,19 +14,21 @@ info() {
   echo "[$(date +'%Y-%m-%dT%H:%M:%S')] INFO: $*" >&1
 }
 
-# Constants
+# DockerHub Configuration
 readonly PUSH_TO_DOCKERHUB=true
 readonly DOCKERHUB_REGISTRY="docker.io"
 readonly DOCKERHUB_NAMESPACE="viascom"
 readonly DOCKERHUB_USERNAME="XXX"
-readonly DOCKERHUB_PASSWORD="XXX"
+readonly DOCKERHUB_TOKEN="XXX"
 
+# GitHub Container Registry (GHCR) Configuration
 readonly PUSH_TO_GHCR=false
 readonly GITHUB_REGISTRY="ghcr.io"
 readonly GITHUB_NAMESPACE="viascom"
 readonly GITHUB_USERNAME="XXX"
 readonly GITHUB_TOKEN="XXX"
 
+# Image Metadata
 readonly TITLE="Github Maintenance Action"
 readonly DESCRIPTION="A GitHub Action for configurable housekeeping of workflow runs, logs, and artifacts."
 readonly IMAGE_NAME="github-maintenance-action"
@@ -43,12 +45,16 @@ readonly BASE_IMAGE="viascom/alpine:3.19.0"
 readonly BASE_DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "$BASE_IMAGE")
 readonly GIT_REVISION=$(git rev-parse HEAD)
 
-readonly PULL_PUSHED_IMAGES=true
-
-readonly JAR_FILE_PATH="github-maintenance-action.jar"
-
+# Datadog Configuration
 readonly DATADOG_SERVICE_NAME="$IMAGE_NAME"
-readonly DATADOG_ENVIRONMENT="master" # Can be master, main, develop, qa ...
+readonly DATADOG_ENVIRONMENT="master"
+
+# Script Configuration
+readonly PULL_PUSHED_IMAGES=true
+readonly TEARDOWN_BUILDX=false
+
+# Application Configuration
+readonly JAR_FILE_PATH="github-maintenance-action.jar"
 
 setup_buildx() {
   if ! docker buildx ls | grep -q "multiarch-builder"; then
@@ -56,6 +62,19 @@ setup_buildx() {
     docker buildx inspect --bootstrap
   else
     docker buildx use multiarch-builder
+  fi
+}
+
+teardown_buildx() {
+  if docker buildx ls | grep -q "multiarch-builder"; then
+    docker buildx stop multiarch-builder
+    docker buildx rm multiarch-builder
+  fi
+
+  if ! docker buildx ls | grep -q "default"; then
+    docker buildx create --name default --use
+  else
+    docker buildx use default
   fi
 }
 
@@ -179,7 +198,7 @@ main() {
   fi
 
   if [ "$PUSH_TO_DOCKERHUB" = true ]; then
-    docker_auth "login" "$DOCKERHUB_REGISTRY" "$DOCKERHUB_USERNAME" "$DOCKERHUB_PASSWORD"
+    docker_auth "login" "$DOCKERHUB_REGISTRY" "$DOCKERHUB_USERNAME" "$DOCKERHUB_TOKEN"
   fi
 
   if [ "$PUSH_TO_GHCR" = true ]; then
@@ -216,6 +235,10 @@ main() {
 
   if [ "$PUSH_TO_GHCR" = true ]; then
     docker_auth "logout" "$GITHUB_REGISTRY" "$GITHUB_USERNAME"
+  fi
+
+  if [ "$TEARDOWN_BUILDX" = true ]; then
+    teardown_buildx
   fi
 }
 
