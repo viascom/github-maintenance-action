@@ -235,11 +235,11 @@ main() {
   fi
 
   if [ "$PUSH_TO_DOCKERHUB" = true ]; then
-    docker_auth "logout" "$DOCKERHUB_REGISTRY" "$DOCKERHUB_USERNAME"
+    docker_auth "logout" "$DOCKERHUB_REGISTRY"
   fi
 
   if [ "$PUSH_TO_GHCR" = true ]; then
-    docker_auth "logout" "$GITHUB_REGISTRY" "$GITHUB_USERNAME"
+    docker_auth "logout" "$GITHUB_REGISTRY"
   fi
 
   if [ "$TEARDOWN_BUILDX" = true ]; then
