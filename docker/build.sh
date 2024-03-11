@@ -1,4 +1,5 @@
 #!/bin/bash
+# docker buildx build: https://docs.docker.com/engine/reference/commandline/buildx_build/
 
 # Logging functions
 error() {

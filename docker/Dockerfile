@@ -8,7 +8,7 @@ COPY build_application.sh ./
 RUN bash build_application.sh
 
 # Run-time container
-FROM viascom/alpine:3.19.0
+FROM viascom/ubuntu:22.04.4
 
 ARG APP_NAME=github-maintenance-action
 ARG LOG_FOLDER=/srv/github-maintenance-action/logs
@@ -21,17 +21,18 @@ USER root
 
 ## Adding programs for operation
 COPY packages.list /tmp
-RUN xargs -r apk -v --update-cache add < /tmp/packages.list && \
-    rm -rf /var/cache/apk/* && \
-    rm /tmp/packages.list
+
+RUN apt-get update && apt-get upgrade --yes && apt-get autoremove --yes; \
+    xargs -r apt-get install --yes --no-install-recommends < /tmp/packages.list; \
+    apt-get clean && rm -rf /var/lib/apt/lists /var/cache/apt/archives /tmp/* /var/tmp/*
 
 WORKDIR /srv/$APP
 
 COPY run_application.sh /etc
 
-RUN mkdir -p $LOG_FOLDER && \
-    chgrp $GROUP $LOG_FOLDER && \
-    chmod g+rwx $LOG_FOLDER && \
+RUN mkdir -p $LOG_FOLDER; \
+    chgrp $GROUP $LOG_FOLDER; \
+    chmod g+rwx $LOG_FOLDER; \
     chmod +x /etc/run_application.sh
 
 ## Application-specif created JRE
