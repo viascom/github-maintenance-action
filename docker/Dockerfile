@@ -1,5 +1,5 @@
 # Build-time container
-FROM viascom/jdk:21 as builder
+FROM viascom/jdk:21.0.2 as builder
 ARG JAR_FILE
 USER root
 WORKDIR /tmp/application
