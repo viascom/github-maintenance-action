@@ -57,7 +57,7 @@ jobs:
           check-latest: false
 
       - name: Validate Gradle Wrapper
-        uses: gradle/wrapper-validation-action@v3.3.0
+        uses: gradle/wrapper-validation-action@v3.3.1
 
       - name: Change Gradle Wrapper permissions
         run: chmod +x ./gradlew
