@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -e
 
 JAR_FILE=application.jar
 if [ ! -f "$JAR_FILE" ]; then
