@@ -64,15 +64,15 @@ jobs:
 
       - name: Build github-maintenance-action (build-only)
         if: "${{ github.event.inputs.publish == 'false' || github.event.inputs.publish == '' }}"
-        run: ./gradlew clean build docker --warn --stacktrace
+        run: ./gradlew clean build docker --warn --stacktrace --configuration-cache
 
       - name: Build and push github-maintenance-action to Docker Hub
         if: "${{ github.event.inputs.publish == 'true' }}"
-        run: ./gradlew clean build dockerPush --warn --stacktrace --scan
+        run: ./gradlew clean build dockerPush --warn --stacktrace --scan --configuration-cache
 
       - name: Upload github-maintenance-action artifacts to GitHub
         uses: actions/upload-artifact@v4
         with:
           name: build-libs
           path: build/libs
-          retention-days: 7
+          retention-days: 1

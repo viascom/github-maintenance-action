@@ -11,7 +11,12 @@ plugins {
 }
 
 group = "io.viascom.github.action.maintenance"
-version "0.0.2"
+
+def major = "0"
+def minor = "0"
+def patch = "3"
+
+version = "$major.$minor.$patch"
 
 bootJar {
     archiveFileName = "github-maintenance-action.jar"
