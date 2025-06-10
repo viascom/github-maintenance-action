@@ -2,7 +2,6 @@ package io.viascom.github.action.maintenance.model
 
 import com.google.gson.annotations.SerializedName
 
-
 data class WorkflowRun(
 
     @SerializedName("id")
@@ -54,7 +53,7 @@ data class WorkflowRun(
     var htmlUrl: String? = null,
 
     @SerializedName("pull_requests")
-    var pullRequests: ArrayList<PullRequest> = arrayListOf(),
+    var pullRequestRefs: ArrayList<PullRequestRef> = arrayListOf(),
 
     @SerializedName("created_at")
     var createdAt: String? = null,
@@ -109,5 +108,4 @@ data class WorkflowRun(
 
     @SerializedName("head_repository")
     var headRepository: Repository? = Repository()
-
 )
