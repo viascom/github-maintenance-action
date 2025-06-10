@@ -13,10 +13,7 @@ import org.springframework.stereotype.Service
 import java.util.concurrent.TimeUnit
 
 @Service
-class GitHubApi(
-    private val gson: Gson
-) {
-
+class GitHubApi(private val gson: Gson) {
     private val log = LoggerFactory.getLogger(javaClass)
 
     private val client = OkHttpClient.Builder()

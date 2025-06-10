@@ -54,7 +54,7 @@ data class WorkflowRun(
     var htmlUrl: String? = null,
 
     @SerializedName("pull_requests")
-    var pullRequests: ArrayList<String> = arrayListOf(),
+    var pullRequests: ArrayList<PullRequest> = arrayListOf(),
 
     @SerializedName("created_at")
     var createdAt: String? = null,

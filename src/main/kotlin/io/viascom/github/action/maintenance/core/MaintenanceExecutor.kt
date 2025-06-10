@@ -8,10 +8,7 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
 @Service
-class MaintenanceExecutor(
-    private val githubApi: GitHubApi
-) {
-
+class MaintenanceExecutor(private val githubApi: GitHubApi) {
     private val log = LoggerFactory.getLogger(javaClass)
 
     fun deleteOldActionRuns(owner: String, repo: String, retentionDays: Int) {

@@ -7,7 +7,6 @@ import org.slf4j.LoggerFactory
 import java.util.concurrent.TimeoutException
 
 class RateLimitingInterceptor : Interceptor {
-
     private val log = LoggerFactory.getLogger(javaClass)
 
     override fun intercept(chain: Interceptor.Chain): Response {

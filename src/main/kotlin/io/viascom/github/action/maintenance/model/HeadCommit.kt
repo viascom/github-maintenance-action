@@ -2,9 +2,7 @@ package io.viascom.github.action.maintenance.model
 
 import com.google.gson.annotations.SerializedName
 
-
 data class HeadCommit(
-
     @SerializedName("id")
     var id: String? = null,
 

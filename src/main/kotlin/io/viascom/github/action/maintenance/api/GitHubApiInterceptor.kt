@@ -11,7 +11,6 @@ class GitHubApiInterceptor : Interceptor {
             .header("Accept", "application/vnd.github+json")
             .header("X-GitHub-Api-Version", "2022-11-28")
             .build()
-
         return chain.proceed(request)
     }
 }

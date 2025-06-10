@@ -9,7 +9,6 @@ import org.springframework.context.annotation.Configuration
 
 @Configuration
 open class GsonConfig {
-
     @Bean
     open fun gson(): Gson {
         return GsonBuilder()

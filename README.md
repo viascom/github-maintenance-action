@@ -33,7 +33,7 @@ jobs:
       
     steps:
       - name: Delete workflow runs
-        uses: viascom/github-maintenance-action@v0.0.1
+        uses: viascom/github-maintenance-action@v0.1.0
 ```
 
 ## Configuration
