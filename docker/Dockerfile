@@ -1,5 +1,5 @@
 # Build-time container
-FROM viascom/jdk:21.0.7 as builder
+FROM viascom/jdk:21.0.7 AS builder
 ARG JAR_FILE
 USER root
 WORKDIR /tmp/application
@@ -8,7 +8,7 @@ COPY build_application.sh ./
 RUN bash build_application.sh
 
 # Run-time container
-FROM viascom/ubuntu:24.04.02
+FROM viascom/ubuntu:24.04.2
 
 ARG APP_NAME=github-maintenance-action
 ARG LOG_FOLDER=/srv/github-maintenance-action/logs
