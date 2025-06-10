@@ -35,7 +35,6 @@ class GitHubApi(
             .addInterceptor(GitHubApiInterceptor())
             .build()
 
-
         val httpUrl = ("${Environment.githubBaseUrl}/rate_limit").toHttpUrl().newBuilder()
 
         val request = Request.Builder()
