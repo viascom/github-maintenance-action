@@ -39,6 +39,9 @@ open class GitHubActionApplication(
                     Bandwidth.builder().capacity(rateLimit.rate.limit)
                         .refillIntervallyAligned(rateLimit.rate.limit, Duration.ofHours(1), Instant.ofEpochSecond(rateLimit.rate.reset)).build()
                 ).build()
-        Environment.rateLimiter.consumeIgnoringRateLimits(rateLimit.rate.limit - rateLimit.rate.remaining)
+        val tokensToCleanup = rateLimit.rate.limit - rateLimit.rate.remaining
+        if (tokensToCleanup > 0) {
+            Environment.rateLimiter.consumeIgnoringRateLimits(rateLimit.rate.limit - rateLimit.rate.remaining)
+        }
     }
 }
