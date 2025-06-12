@@ -42,7 +42,7 @@ readonly SOURCE_URL="https://github.com/viascom/github-maintenance-action.git"
 readonly VENDOR="Viascom Ltd liab. Co"
 readonly LICENSES="MIT"
 readonly REF_NAME=$VERSION
-readonly BASE_IMAGE="viascom/ubuntu:24.04.02"
+readonly BASE_IMAGE="viascom/ubuntu:24.04.2"
 readonly BASE_DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "$BASE_IMAGE")
 readonly GIT_REVISION=$(git rev-parse HEAD)
 
