@@ -1,23 +1,25 @@
 package io.viascom.github.action.maintenance.api
 
 import io.viascom.github.action.maintenance.core.Environment.rateLimiter
+import io.viascom.github.action.maintenance.exception.RateLimitExceededException
 import okhttp3.Interceptor
 import okhttp3.Response
 import org.slf4j.LoggerFactory
-import java.util.concurrent.TimeoutException
 
 class RateLimitingInterceptor : Interceptor {
-
     private val log = LoggerFactory.getLogger(javaClass)
 
     override fun intercept(chain: Interceptor.Chain): Response {
+        val request = chain.request()
+        val requestInfo = "${request.method} ${request.url}"
+
         val acquired = rateLimiter.tryConsume(1)
-        if (acquired) {
-            return chain.proceed(chain.request())
+        return if (acquired) {
+            chain.proceed(request)
         } else {
-            val message = "Rate limit exceeded!"
+            val message = "Rate limit exceeded for request: $requestInfo!"
             log.error(message)
-            throw TimeoutException(message)
+            throw RateLimitExceededException(message)
         }
     }
 }

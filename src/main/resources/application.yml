@@ -2,6 +2,7 @@ spring:
   main:
     banner-mode: OFF
     log-startup-info: false
+    lazy-initialization: true
 
 logging:
   pattern:

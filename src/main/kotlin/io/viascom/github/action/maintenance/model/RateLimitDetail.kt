@@ -2,9 +2,7 @@ package io.viascom.github.action.maintenance.model
 
 import com.google.gson.annotations.SerializedName
 
-
 data class RateLimitDetail(
-
     @SerializedName("limit")
     var limit: Long,
 
@@ -16,5 +14,4 @@ data class RateLimitDetail(
 
     @SerializedName("reset")
     var reset: Long
-
 )

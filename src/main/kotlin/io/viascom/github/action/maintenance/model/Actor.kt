@@ -2,9 +2,7 @@ package io.viascom.github.action.maintenance.model
 
 import com.google.gson.annotations.SerializedName
 
-
 data class Actor(
-
     @SerializedName("login")
     var login: String? = null,
 

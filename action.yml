@@ -1,81 +1,81 @@
-name: "Github Maintenance Action"
-description: "Executing maintenance tasks on Github."
+name: "GitHub Maintenance Action"
+description: "Executing maintenance tasks on GitHub — delete old workflow runs, artifacts, and logs."
 author: "Viascom Ltd liab. Co | Nikola Stanković <nikola.stankovic@viascom.email>"
 
 inputs:
   github_token:
-    description: "Authentication token"
+    description: "GitHub authentication token (usually pass: secrets.GITHUB_TOKEN)."
     required: true
-    default: ${{ github.token }}
-
-  github_base_url:
-    description: "Base API URL"
-    required: false
-    default: "https://api.github.com"
 
   repository:
-    description: "Name of the repository."
+    description: "Repository name in format 'owner/repo'."
     required: true
     default: ${{ github.repository }}
 
   retention_days:
-    description: "Retention time in days of runs to keep."
+    description: "Retention time in days for workflow runs to keep."
     required: true
     default: 31
 
   keep_minimum_runs:
-    description: "Minimum workflow runs to keep."
+    description: "Minimum number of latest workflow runs to always keep."
     required: true
     default: 5
 
+  # OPTIONAL INPUTS
+  github_base_url:
+    description: "GitHub API base URL. Defaults to public GitHub API."
+    required: false
+    default: "https://api.github.com"
+
   delete_logs:
-    description: "Deletes only the logs of the workflow runs."
+    description: "If true, deletes only the logs of workflow runs. If false and delete_artifacts is also false, the entire workflow run will be deleted."
     required: false
     default: false
 
   delete_artifacts:
-    description: "Deletes only the artifacts of the workflow runs."
+    description: "If true, deletes only the artifacts of workflow runs. If false and delete_logs is also false, the entire workflow run will be deleted."
     required: false
     default: false
 
   actors:
-    description: "Comma-separated list of actors of the workflow runs to be deleted."
+    description: "Comma-separated list of actors whose workflow runs to delete. If empty, no actor filtering is applied."
     required: false
     default: ""
 
   branches:
-    description: "Comma-separated list of branches of the workflow runs to be deleted."
+    description: "Comma-separated list of branches whose workflow runs to delete. If empty, no branch filtering is applied."
     required: false
     default: ""
 
   events:
-    description: "Comma-separated list of events of the workflow runs to be deleted."
+    description: "Comma-separated list of workflow run events to delete. If empty, no event filtering is applied."
     required: false
     default: ""
 
   statuses:
-    description: "Comma-separated list of statuses of the workflow runs to be deleted."
+    description: "Comma-separated list of workflow run statuses to delete. If empty, no status filtering is applied."
     required: false
     default: ""
 
   keep_pull_requests:
-    description: "If set to true, it will keep pull request workflow runs."
+    description: "If true, pull request workflow runs will always be kept."
     required: false
     default: false
 
   dry_run:
-    description: "Logs simulated changes, no actions are performed!"
+    description: "If true, logs simulated changes but does not perform any deletions (artifacts, logs, or runs)."
     required: false
     default: false
 
   debug:
-    description: "When debug is enabled more logs will be printed."
+    description: "If true, enables debug logging."
     required: false
     default: false
 
 runs:
   using: "docker"
-  image: "docker://ghcr.io/viascom/github-maintenance-action:0.0.1"
+  image: "docker://ghcr.io/viascom/github-maintenance-action:latest"
   args:
     - /etc/run_application.sh
     - ${{ inputs.github_token }}

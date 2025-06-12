@@ -2,9 +2,7 @@ package io.viascom.github.action.maintenance.model
 
 import com.google.gson.annotations.SerializedName
 
-
 data class Artifacts(
-
     @SerializedName("id")
     var id: Long = 0,
 
