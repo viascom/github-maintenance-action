@@ -7,5 +7,5 @@ data class RateLimit(
     var resources: HashMap<String, RateLimitDetail>,
 
     @SerializedName("rate")
-    var rate: RateLimitDetail
+    var rate: RateLimitDetail?
 )

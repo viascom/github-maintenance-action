@@ -40,10 +40,17 @@ open class GitHubActionApplication(
     private fun initGitHubApiRateLimiter() {
         val rateLimit = githubApi.rateLimit()
 
-        val capacity = rateLimit.rate.limit
-        val refillTokens = rateLimit.rate.limit
+        // GitHub Actions has a limit of 1000 API requests per hour per repository
+        // Source: https://docs.github.com/en/actions/administering-github-actions/usage-limits-billing-and-administration
+        val defaultLimit = 1000L
+        val defaultRemaining = 1000L
+        val defaultReset = Instant.now().plusSeconds(3600).epochSecond
+
+        val rate = rateLimit.rate
+        val capacity = rate?.limit ?: defaultLimit
+        val refillTokens = rate?.limit ?: defaultLimit
         val refillPeriod = Duration.ofHours(1)
-        val refillAlignment = Instant.ofEpochSecond(rateLimit.rate.reset)
+        val refillAlignment = Instant.ofEpochSecond(rate?.reset ?: defaultReset)
 
         val bandwidth = Bandwidth.builder()
             .capacity(capacity)
@@ -54,9 +61,10 @@ open class GitHubActionApplication(
             .addLimit(bandwidth)
             .build()
 
-        log.info("Initialized GitHub API rate limiter: limit=${capacity}, remaining=${rateLimit.rate.remaining}, resetAt=${refillAlignment}")
+        log.info("Initialized GitHub API rate limiter: limit=${capacity}, remaining=${rate?.remaining ?: defaultRemaining}, resetAt=${refillAlignment}")
 
-        val tokensToCleanup = capacity - rateLimit.rate.remaining
+        val remaining = rate?.remaining ?: defaultRemaining
+        val tokensToCleanup = capacity - remaining
         if (tokensToCleanup > 0) {
             log.info("Consuming $tokensToCleanup tokens to align with current GitHub rate limit state.")
             Environment.rateLimiter.consumeIgnoringRateLimits(tokensToCleanup)
