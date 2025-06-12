@@ -28,8 +28,8 @@ open class GitHubActionApplication(
     }
 
     override fun run(vararg args: String?) {
-        initGitHubApiRateLimiter()
         Environment.validate()
+        initGitHubApiRateLimiter()
 
         val parts = Environment.repository.split("/", limit = 2)
         val (owner, repo) = parts
