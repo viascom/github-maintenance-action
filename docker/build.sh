@@ -23,7 +23,7 @@ readonly DOCKERHUB_USERNAME="XXX"
 readonly DOCKERHUB_TOKEN="XXX"
 
 # GitHub Container Registry (GHCR) Configuration
-readonly PUSH_TO_GHCR=false
+readonly PUSH_TO_GHCR=true
 readonly GITHUB_REGISTRY="ghcr.io"
 readonly GITHUB_NAMESPACE="viascom"
 readonly GITHUB_USERNAME="XXX"
