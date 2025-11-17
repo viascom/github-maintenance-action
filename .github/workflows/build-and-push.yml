@@ -71,7 +71,7 @@ jobs:
         run: ./gradlew clean build dockerPush --warn --stacktrace --scan
 
       - name: Upload github-maintenance-action artifacts to GitHub
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: build-libs
           path: build/libs
