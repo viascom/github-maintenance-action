@@ -2,9 +2,10 @@ plugins {
     id "idea"
     id "application"
     id "maven-publish"
-    id "org.jetbrains.kotlin.jvm" version "2.1.21"
+    id "org.jetbrains.kotlin.jvm" version "2.2.21"
     id "io.spring.dependency-management" version "1.1.7"
-    id "org.springframework.boot" version "3.5.0"
+    id "org.springframework.boot" version "3.5.7"
+    id "com.palantir.docker" version "0.36.0"
 }
 
 defaultTasks("clean", "build")
@@ -50,9 +51,10 @@ dependencies {
     implementation "org.springframework.boot:spring-boot-starter"
     implementation "org.jetbrains.kotlin:kotlin-stdlib"
 
-    implementation "com.squareup.okhttp3:okhttp:4.12.0"
+    implementation "com.squareup.okhttp3:okhttp:5.3.1"
     implementation "com.google.code.gson:gson:2.13.1"
-    implementation "com.bucket4j:bucket4j_jdk17-core:8.14.0"
+    implementation "com.bucket4j:bucket4j-core:8.10.1"
+//    implementation "com.bucket4j:bucket4j_jdk17-core:8.14.0"
 
     annotationProcessor "org.springframework:spring-context-indexer"
 
