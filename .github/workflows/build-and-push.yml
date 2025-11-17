@@ -6,9 +6,7 @@ on:
       - '*'
     paths-ignore:
       - '**.md'
-      - '**.sql'
       - '.github/**'
-      - 'http-requests/**'
     tags:
       - '*'
   workflow_dispatch:
@@ -24,11 +22,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Setup timezone
-        run: |
-          sudo timedatectl set-timezone Europe/Zurich
-          timedatectl
-
       - name: Check out the repo
         uses: actions/checkout@v5
 
@@ -57,7 +50,9 @@ jobs:
           check-latest: false
 
       - name: Validate Gradle Wrapper
-        uses: gradle/wrapper-validation-action@v3.5.0
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          validate-wrappers: true
 
       - name: Change Gradle Wrapper permissions
         run: chmod +x ./gradlew

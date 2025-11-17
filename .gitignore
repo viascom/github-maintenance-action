@@ -1,39 +1,57 @@
-HELP.md
-.gradle
+# Kotlin build outputs
+/build
+/bin
+/out
+
+# Kotlin compiler sessions
+.kotlin/
+
+# Gradle files
+.gradle/
 build/
-!gradle/wrapper/gradle-wrapper.jar
-!**/src/main/**/build/
-!**/src/test/**/build/
+!gradle-wrapper.jar
+gradle-wrapper.properties
+gradle-wrapper/
 
-### STS ###
-.apt_generated
-.classpath
-.factorypath
-.project
-.settings
-.springBeans
-.sts4-cache
-bin/
-!**/src/main/**/bin/
-!**/src/test/**/bin/
-
-### IntelliJ IDEA ###
-.idea
-*.iws
+# IntelliJ IDEA
+.idea/
 *.iml
+*.iws
 *.ipr
-out/
-!**/src/main/**/out/
-!**/src/test/**/out/
 
-### NetBeans ###
-/nbproject/private/
-/nbbuild/
-/dist/
-/nbdist/
-/.nb-gradle/
+# OS-specific
+.DS_Store
+Thumbs.db
 
-### VS Code ###
+# Logs
+*.log
+
+# JVM
+*.class
+
+# Kotlin annotation processing
+.kapt/
+.ksp/
+
+# Coverage reports
+coverage/
+*.ec
+*.exec
+
+# Others
+*.jar
+*.war
+*.ear
+
+# Local properties
+local.properties
+
+# JetBrains Rider
+.idea/
+*.sln
+*.csproj
+
+# Ignore VS Code settings
 .vscode/
 
 ### Custom ###

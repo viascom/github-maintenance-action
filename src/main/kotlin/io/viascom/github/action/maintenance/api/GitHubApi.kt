@@ -2,21 +2,17 @@ package io.viascom.github.action.maintenance.api
 
 import com.google.gson.Gson
 import io.viascom.github.action.maintenance.core.Environment
+import io.viascom.github.action.maintenance.core.Environment.isDryRun
 import io.viascom.github.action.maintenance.model.*
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
-import okhttp3.Protocol
 import okhttp3.Request
-import okhttp3.Response
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.util.concurrent.TimeUnit
 
 @Service
-class GitHubApi(
-    private val gson: Gson
-) {
-
+class GitHubApi(private val gson: Gson) {
     private val log = LoggerFactory.getLogger(javaClass)
 
     private val client = OkHttpClient.Builder()
@@ -34,7 +30,6 @@ class GitHubApi(
             .readTimeout(60, TimeUnit.SECONDS)
             .addInterceptor(GitHubApiInterceptor())
             .build()
-
 
         val httpUrl = ("${Environment.githubBaseUrl}/rate_limit").toHttpUrl().newBuilder()
 
@@ -94,7 +89,6 @@ class GitHubApi(
         checkSuiteId: Int? = null,
         headSha: String? = null
     ): WorkflowRuns {
-
         var requestData = arrayListOf<RequestData>()
         actors?.let { data -> requestData = populateRequestData(data, requestData) { actor = it } }
         branches?.let { data -> requestData = populateRequestData(data, requestData) { branch = it } }
@@ -179,40 +173,32 @@ class GitHubApi(
         return workflowRuns
     }
 
-    fun deleteWorkflowRun(owner: String, repo: String, runId: Long): Response {
+    fun deleteWorkflowRun(owner: String, repo: String, runId: Long) {
         val request = Request.Builder()
             .url("${Environment.githubBaseUrl}/repos/$owner/$repo/actions/runs/$runId")
             .delete()
             .build()
 
-        val response: Response
-        if (!Environment.isDryRun) {
-            response = client.newCall(request).execute()
+        if (!isDryRun) {
+            client.newCall(request).execute()
             log.info("\uD83E\uDEE7 Deleted workflow run with id $runId.")
         } else {
             log.info("\uD83E\uDD21 Pretending to deleted workflow run with id $runId.")
-            response = createMockResponse()
         }
-
-        return response
     }
 
-    fun deleteWorkflowRunLogs(owner: String, repo: String, runId: Long): Response {
+    fun deleteWorkflowRunLogs(owner: String, repo: String, runId: Long) {
         val request = Request.Builder()
             .url("${Environment.githubBaseUrl}/repos/$owner/$repo/actions/runs/$runId/logs")
             .delete()
             .build()
 
-        val response: Response
-        if (!Environment.isDryRun) {
-            response = client.newCall(request).execute()
+        if (!isDryRun) {
+            client.newCall(request).execute()
             log.info("\uD83D\uDCC4 Deleted logs of workflow run $runId.")
         } else {
             log.info("\uD83E\uDD21 Pretending to deleted logs of workflow run $runId.")
-            response = createMockResponse()
         }
-
-        return response
     }
 
     private fun listWorkflowRunArtifacts(
@@ -264,31 +250,17 @@ class GitHubApi(
         return workflowRunArtifacts
     }
 
-    fun deleteArtifact(owner: String, repo: String, artifactId: Long): Response {
+    fun deleteArtifact(owner: String, repo: String, artifactId: Long) {
         val request = Request.Builder()
             .url("${Environment.githubBaseUrl}/repos/$owner/$repo/actions/artifacts/$artifactId")
             .delete()
             .build()
 
-        val response: Response
-        if (!Environment.isDryRun) {
-            response = client.newCall(request).execute()
+        if (!isDryRun) {
+            client.newCall(request).execute()
             log.info("\uD83D\uDCC4 Deleted workflow artifact with id $artifactId.")
         } else {
             log.info("\uD83E\uDD21 Pretending to deleted workflow artifact with id $artifactId.")
-            response = createMockResponse()
         }
-
-        return response
-    }
-
-    private fun createMockResponse(): Response {
-        // Mock a successful response with a status code of 200 (OK)
-        return Response.Builder()
-            .code(204) // 204 No Content
-            .protocol(Protocol.HTTP_1_1)
-            .message("GitHub API call simulated.")
-            .request(Request.Builder().url("http://mockurl/").build())
-            .build()
     }
 }

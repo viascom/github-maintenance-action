@@ -23,7 +23,7 @@ readonly DOCKERHUB_USERNAME="XXX"
 readonly DOCKERHUB_TOKEN="XXX"
 
 # GitHub Container Registry (GHCR) Configuration
-readonly PUSH_TO_GHCR=false
+readonly PUSH_TO_GHCR=true
 readonly GITHUB_REGISTRY="ghcr.io"
 readonly GITHUB_NAMESPACE="viascom"
 readonly GITHUB_USERNAME="XXX"
@@ -33,7 +33,7 @@ readonly GITHUB_TOKEN="XXX"
 readonly TITLE="Github Maintenance Action"
 readonly DESCRIPTION="A GitHub Action for configurable housekeeping of workflow runs, logs, and artifacts."
 readonly IMAGE_NAME="github-maintenance-action"
-readonly VERSION="0.0.1"
+readonly VERSION="0.1.0"
 readonly BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%S%z")
 readonly AUTHORS="Nikola Stanković <nikola.stankovic@viascom.email>, Patrick Bösch <patrick.boesch@viascom.email>"
 readonly IMAGE_URL="https://github.com/viascom/github-maintenance-action/blob/main/README.md"
@@ -42,13 +42,9 @@ readonly SOURCE_URL="https://github.com/viascom/github-maintenance-action.git"
 readonly VENDOR="Viascom Ltd liab. Co"
 readonly LICENSES="MIT"
 readonly REF_NAME=$VERSION
-readonly BASE_IMAGE="viascom/alpine:3.19.0"
+readonly BASE_IMAGE="viascom/ubuntu:24.04.2"
 readonly BASE_DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "$BASE_IMAGE")
 readonly GIT_REVISION=$(git rev-parse HEAD)
-
-# Datadog Configuration
-readonly DATADOG_SERVICE_NAME="$IMAGE_NAME"
-readonly DATADOG_ENVIRONMENT="master"
 
 # Script Configuration
 readonly PULL_PUSHED_IMAGES=true
@@ -142,9 +138,6 @@ build_image() {
     "--label" "org.opencontainers.image.description=${DESCRIPTION:-}"
     "--label" "org.opencontainers.image.base.digest=${BASE_DIGEST:-}"
     "--label" "org.opencontainers.image.base.name=${BASE_IMAGE:-}"
-    "--label" "com.datadoghq.tags.service=${DATADOG_SERVICE_NAME:-}"
-    "--label" "com.datadoghq.tags.env=${DATADOG_ENVIRONMENT:-}"
-    "--label" "com.datadoghq.tags.version=${VERSION:-}"
     "."
   )
 

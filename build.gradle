@@ -1,4 +1,4 @@
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask
 
 plugins {
     id "idea"
@@ -7,23 +7,30 @@ plugins {
     id "org.jetbrains.kotlin.jvm" version "2.2.21"
     id "io.spring.dependency-management" version "1.1.7"
     id "org.springframework.boot" version "3.5.7"
-    id "com.palantir.docker" version "0.36.0"
 }
+
+defaultTasks("clean", "build")
 
 group = "io.viascom.github.action.maintenance"
 
 def major = "0"
-def minor = "0"
-def patch = "3"
+def minor = "1"
+def patch = "0"
 
 version = "$major.$minor.$patch"
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
 
 bootJar {
     archiveFileName = "github-maintenance-action.jar"
 }
 
 application {
-    mainClassName = "io.viascom.github.action.maintenance.GitHubActionApplication"
+    mainClass = "io.viascom.github.action.maintenance.GitHubActionApplication"
 }
 
 springBoot {
@@ -43,11 +50,14 @@ repositories {
 
 dependencies {
     implementation "org.springframework.boot:spring-boot-starter"
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib"
 
     implementation "com.squareup.okhttp3:okhttp:5.3.1"
-    implementation "com.google.code.gson:gson:2.11.0"
+    implementation "com.google.code.gson:gson:2.13.1"
     implementation "com.bucket4j:bucket4j-core:8.10.1"
+//    implementation "com.bucket4j:bucket4j_jdk17-core:8.14.0"
+
+    annotationProcessor "org.springframework:spring-context-indexer"
 
     testImplementation "org.springframework.boot:spring-boot-starter-test"
 }
@@ -56,20 +66,17 @@ test {
     useJUnitPlatform()
 }
 
-tasks.withType(KotlinCompile).configureEach {
-    kotlinOptions.jvmTarget = JavaVersion.VERSION_21
-    kotlinOptions.freeCompilerArgs = ["-Xjvm-default=all"]
-}
-
-docker {
-    dependsOn bootJar
-    name "viascom/${rootProject.name}:${version}"
-    tags "$version"
-    dockerfile file("docker/Dockerfile")
-    files bootJar.archiveFile, 'docker/build_application.sh', 'docker/run_application.sh', 'docker/packages.list'
-    buildArgs([APP_NAME: 'github-maintenance-action', JAR_FILE: 'github-maintenance-action.jar'])
-    pull true
-    noCache true
+kotlin {
+    kotlin {
+        compilerOptions {
+            freeCompilerArgs.addAll "-Xjsr305=strict"
+        }
+    }
+    tasks.withType(KotlinCompilationTask).configureEach {
+        compilerOptions {
+            freeCompilerArgs.add("-Xjsr305=strict")
+        }
+    }
 }
 
 publishing {
