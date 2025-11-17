@@ -19,7 +19,7 @@ term_handler() {
 
 # Set up a trap to handle SIGTERM signal (e.g., when Docker stops the container)
 # This ensures proper cleanup by killing the current background process and calling term_handler
-trap 'kill ${!}; term_handler' SIGTERM
+trap 'term_handler' SIGTERM
 
 cd /srv/"$APP" || exit
 

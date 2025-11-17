@@ -13,7 +13,7 @@ class GitHubApiInterceptor : Interceptor {
     }
 
     override fun intercept(chain: Interceptor.Chain): Response {
-        val token = Environment.gitHubToken
+        val token = Environment.gitHubToken.takeIf { it.isNotBlank() } ?: throw IllegalStateException("GITHUB_TOKEN not set or empty")
         val request = chain.request().newBuilder()
             .header("Authorization", "Bearer $token")
             .header("Accept", "application/vnd.github+json")

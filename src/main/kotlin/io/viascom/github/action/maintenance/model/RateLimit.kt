@@ -4,8 +4,8 @@ import com.google.gson.annotations.SerializedName
 
 data class RateLimit(
     @SerializedName("resources")
-    var resources: HashMap<String, RateLimitDetail>,
+    val resources: Map<String, RateLimitDetail>,
 
     @SerializedName("rate")
-    var rate: RateLimitDetail?
+    val rate: RateLimitDetail?
 )
