@@ -1,5 +1,7 @@
-#!/bin/bash -e
+#!/bin/bash
+set -e
 
+# --- Default Configuration ---
 DEFAULT_JAVA_OPTS="-Dfile.encoding=UTF-8 \
 -Duser.timezone=UTC \
 -Djava.net.preferIPv4Stack=true \
@@ -9,36 +11,46 @@ DEFAULT_JAVA_OPTS="-Dfile.encoding=UTF-8 \
 -Djava.net.useSystemProxies=false \
 -XX:+ExitOnOutOfMemoryError"
 
-if [ -n "$JAVA_OPTS" ]; then
-  JAVA_OPTS="$DEFAULT_JAVA_OPTS $JAVA_OPTS"
-else
-  JAVA_OPTS="$DEFAULT_JAVA_OPTS"
+# Merge provided JAVA_OPTS with defaults
+JAVA_OPTS="${DEFAULT_JAVA_OPTS} ${JAVA_OPTS}"
+
+# Set default port if not provided
+PORT="${PORT:-"8080"}"
+
+# Ensure APP is set
+if [ -z "$APP" ]; then
+  echo "Error: APP environment variable is not set."
+  exit 1
 fi
 
-PORT="${PORT:="8080"}"
+# --- Signal Handling ---
+pid=0
 
 term_handler() {
-  if [ $pid -ne 0 ]; then
+  echo "Received SIGTERM, shutting down gracefully..."
+  if [ "$pid" -ne 0 ]; then
     kill -SIGTERM "$pid"
     wait "$pid"
   fi
-  exit 143 # 128 + 15 -- SIGTERM
+  exit 0
 }
 
-trap 'kill ${!}; term_handler' SIGTERM
+# Trap SIGTERM and SIGINT for graceful shutdown
+trap term_handler SIGTERM SIGINT
 
-cd /srv/"$APP" || exit
+# --- Application Startup ---
+cd "/srv/${APP}" || { echo "Error: Could not change directory to /srv/${APP}"; exit 1; }
 
-/opt/java/bin/java $JAVA_OPTS org.springframework.boot.loader.launch.JarLauncher --bind 0.0.0.0:$PORT &
+echo "Starting application ${APP}..."
+# shellcheck disable=SC2086
+/opt/java/bin/java ${JAVA_OPTS} org.springframework.boot.loader.launch.JarLauncher --bind 0.0.0.0:"${PORT}" &
 pid="$!"
 
-while true; do
-  # Check if a process is still running
-  kill -0 "$pid" 2>/dev/null
-  if [ $? -ne 0 ]; then
-    echo "Process $pid is not running, shutting down the container."
-    term_handler
-  fi
+# Wait for the process to finish and capture its exit code
+# In bash, if the wait is interrupted by a signal for which a trap has been set,
+# then the wait returns immediately with an exit status greater than 128.
+wait "$pid"
+exit_code=$?
 
-  sleep 5
-done
+echo "Application process (PID: $pid) exited with code $exit_code"
+exit "$exit_code"
