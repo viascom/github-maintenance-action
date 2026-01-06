@@ -14,7 +14,7 @@ defaultTasks("clean", "build")
 group = "io.viascom.github.action.maintenance"
 
 def major = "0"
-def minor = "1"
+def minor = "2"
 def patch = "0"
 
 version = "$major.$minor.$patch"

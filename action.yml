@@ -6,6 +6,7 @@ inputs:
   github_token:
     description: "GitHub authentication token (usually pass: secrets.GITHUB_TOKEN)."
     required: true
+    default: ${{ github.token }}
 
   repository:
     description: "Repository name in format 'owner/repo'."

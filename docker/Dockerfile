@@ -1,5 +1,5 @@
 # Build-time container
-FROM viascom/jdk:25.0.1 AS builder
+FROM viascom/jdk:21.0.9 AS builder
 ARG JAR_FILE
 USER root
 WORKDIR /tmp/application
@@ -8,7 +8,7 @@ COPY build_application.sh ./
 RUN bash build_application.sh
 
 # Run-time container
-FROM viascom/ubuntu:24.04.3
+FROM viascom/ubuntu:24.04.3 AS runtime
 
 ARG APP_NAME=github-maintenance-action
 ARG LOG_FOLDER=/srv/github-maintenance-action/logs
@@ -21,18 +21,16 @@ USER root
 
 ## Adding programs for operation
 COPY packages.list /tmp
-
-RUN apt-get update && apt-get upgrade --yes && apt-get autoremove --yes; \
-    xargs -r apt-get install --yes --no-install-recommends < /tmp/packages.list; \
+RUN apt-get update && xargs -r apt-get install --no-install-recommends --yes < /tmp/packages.list && \
     apt-get clean && rm -rf /var/lib/apt/lists /var/cache/apt/archives /tmp/* /var/tmp/*
 
 WORKDIR /srv/$APP
 
 COPY run_application.sh /etc
 
-RUN mkdir -p $LOG_FOLDER; \
-    chgrp $GROUP $LOG_FOLDER; \
-    chmod g+rwx $LOG_FOLDER; \
+RUN mkdir -p $LOG_FOLDER && \
+    chgrp $GROUP $LOG_FOLDER && \
+    chmod g+rwx $LOG_FOLDER && \
     chmod +x /etc/run_application.sh
 
 ## Application-specif created JRE

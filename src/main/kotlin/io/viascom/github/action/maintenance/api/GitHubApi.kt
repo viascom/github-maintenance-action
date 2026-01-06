@@ -65,7 +65,7 @@ class GitHubApi(private val gson: Gson) {
         event?.let { httpUrl.addQueryParameter("event", event) }
         status?.let { httpUrl.addQueryParameter("status", status) }
         created?.let { httpUrl.addQueryParameter("created", created) }
-        keepPullRequests.let { httpUrl.addQueryParameter("keep_pull_requests", keepPullRequests.toString()) }
+        httpUrl.addQueryParameter("exclude_pull_requests", (!keepPullRequests).toString())
         checkSuiteId?.let { httpUrl.addQueryParameter("check_suite_id", checkSuiteId.toString()) }
         headSha?.let { httpUrl.addQueryParameter("head_sha", headSha) }
 
@@ -216,7 +216,7 @@ class GitHubApi(private val gson: Gson) {
         name?.let { httpUrl.addQueryParameter("name", name) }
 
         val request = Request.Builder()
-            .url("${Environment.githubBaseUrl}/repos/$owner/$repo/actions/runs/$runId/logs")
+            .url(httpUrl.build())
             .get()
             .build()
 
