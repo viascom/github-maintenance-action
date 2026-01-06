@@ -36,7 +36,7 @@ jobs:
 
         steps:
             -   name: Delete workflow runs
-                uses: viascom/github-maintenance-action@v0.1.0
+                uses: viascom/github-maintenance-action@v0.2.0
                 with:
                     github_token: ${{ secrets.GITHUB_TOKEN }}
 ```
@@ -52,10 +52,10 @@ jobs:
 | `keep_minimum_runs`  | Minimum workflow runs to keep.                                       | 5                          |
 | `delete_logs`        | Deletes only the logs of the workflow runs.                          | false                      |
 | `delete_artifacts`   | Deletes only the artifacts of the workflow runs.                     | false                      |
-| `actors`             | Comma-separated list of actors of the workflow runs to be deleted.   | null                       |
-| `branches`           | Comma-separated list of branches of the workflow runs to be deleted. | null                       |
-| `events`             | Comma-separated list of events of the workflow runs to be deleted.   | null                       |
-| `statuses`           | Comma-separated list of statuses of the workflow runs to be deleted. | null                       |
+| `actors`             | Comma-separated list of actors of the workflow runs to be deleted.   | (empty)                    |
+| `branches`           | Comma-separated list of branches of the workflow runs to be deleted. | (empty)                    |
+| `events`             | Comma-separated list of events of the workflow runs to be deleted.   | (empty)                    |
+| `statuses`           | Comma-separated list of statuses of the workflow runs to be deleted. | (empty)                    |
 | `keep_pull_requests` | If set to true, it will keep pull request workflow runs.             | false                      |
 | `dry_run`            | Logs simulated changes, no actions are performed!                    | false                      |
 | `debug`              | When debug is enabled more logs will be printed.                     | false                      |
@@ -79,7 +79,7 @@ jobs:
         
         steps:
             -   name: Delete workflow runs
-                uses: viascom/github-maintenance-action@v0.1.0
+                uses: viascom/github-maintenance-action@v0.2.0
                 with:
                     github_token: ${{ secrets.GITHUB_TOKEN }}
                     github_base_url: 'https://api.github.com'
@@ -94,7 +94,7 @@ jobs:
                     statuses: 'failure'
                     keep_pull_requests: false
                     dry_run: false
-                debug: false
+                    debug: false
 ```
 
 ## Notes

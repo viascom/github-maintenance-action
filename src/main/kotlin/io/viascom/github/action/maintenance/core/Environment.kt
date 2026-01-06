@@ -9,15 +9,15 @@ import io.viascom.github.action.maintenance.util.splitCommaList
 object Environment {
 
     // REQUIRED
-    val gitHubToken: String = System.getenv("INPUT_GITHUB_TOKEN") ?: error("INPUT_GITHUB_TOKEN is required")
-    val repository: String = System.getenv("INPUT_REPOSITORY") ?: error("INPUT_REPOSITORY is required")
-    val retentionDays: Int = System.getenv("INPUT_RETENTION_DAYS")?.toIntOrNull()
+    val gitHubToken: String = System.getenv("INPUT_GITHUB_TOKEN")?.takeIf { it.isNotBlank() } ?: error("INPUT_GITHUB_TOKEN is required")
+    val repository: String = System.getenv("INPUT_REPOSITORY")?.takeIf { it.isNotBlank() } ?: error("INPUT_REPOSITORY is required")
+    val retentionDays: Int = System.getenv("INPUT_RETENTION_DAYS")?.takeIf { it.isNotBlank() }?.toIntOrNull()
         ?: error("INPUT_RETENTION_DAYS must be a valid integer")
-    val keepMinimumRuns: Int = System.getenv("INPUT_KEEP_MINIMUM_RUNS")?.toIntOrNull()
+    val keepMinimumRuns: Int = System.getenv("INPUT_KEEP_MINIMUM_RUNS")?.takeIf { it.isNotBlank() }?.toIntOrNull()
         ?: error("INPUT_KEEP_MINIMUM_RUNS must be a valid integer")
 
     // OPTIONAL
-    val githubBaseUrl: String = System.getenv("INPUT_GITHUB_BASE_URL") ?: "https://api.github.com"
+    val githubBaseUrl: String = System.getenv("INPUT_GITHUB_BASE_URL")?.takeIf { it.isNotBlank() } ?: "https://api.github.com"
     val deleteLogs: Boolean = System.getenv("INPUT_DELETE_LOGS")?.toBoolean() ?: false
     val deleteArtifacts: Boolean = System.getenv("INPUT_DELETE_ARTIFACTS")?.toBoolean() ?: false
     val actors: List<String> = System.getenv("INPUT_ACTORS").splitCommaList()

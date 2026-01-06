@@ -2,25 +2,25 @@
 
 JAR_FILE=application.jar
 if [ ! -f "$JAR_FILE" ]; then
-    echo "build.error: application jar is missing!"
-    exit 1
+  echo "build.error: application jar is missing!"
+  exit 1
 fi
 
 jar xf application.jar
 REQUIRED_JAVA_MODULES="$(jdeps \
-                            --print-module-deps \
-                            --ignore-missing-deps \
-                            --recursive \
-                            --multi-release 21 \
-                            --class-path="./BOOT-INF/lib/*" \
-                            --module-path="./BOOT-INF/lib/*" \
-                            ./application.jar),jdk.crypto.ec"
+  --print-module-deps \
+  --ignore-missing-deps \
+  --recursive \
+  --multi-release 21 \
+  --class-path="./BOOT-INF/lib/*" \
+  --module-path="./BOOT-INF/lib/*" \
+  ./application.jar),jdk.crypto.ec,jdk.zipfs"
 
 echo "$REQUIRED_JAVA_MODULES"
 
 if [ -z "$REQUIRED_JAVA_MODULES" ]; then
-    echo "build.error: required java modules are not determined!"
-    exit 1
+  echo "build.error: required java modules are not determined!"
+  exit 1
 fi
 
 jlink \
