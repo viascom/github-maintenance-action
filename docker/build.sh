@@ -42,14 +42,16 @@ readonly SOURCE_URL="https://github.com/viascom/github-maintenance-action.git"
 readonly VENDOR="Viascom Ltd liab. Co"
 readonly LICENSES="MIT"
 readonly REF_NAME=$VERSION
-readonly BASE_IMAGE="viascom/ubuntu:24.04.2"
-readonly BASE_DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "$BASE_IMAGE")
-readonly GIT_REVISION=$(git rev-parse HEAD)
+readonly BASE_IMAGE="viascom/ubuntu:24.04.3"
+# Ensure base image is pulled to get the digest
+docker pull "$BASE_IMAGE" > /dev/null 2>&1
+readonly BASE_DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "$BASE_IMAGE" 2>/dev/null || echo "unknown")
+readonly GIT_REVISION=$(git rev-parse HEAD 2>/dev/null || echo "unknown")
 
 # Script Configuration
 readonly PULL_PUSHED_IMAGES=true
 readonly TEARDOWN_BUILDX=true
-readonly INITIAL_BUILDER=$(docker buildx ls | grep '\*' | awk '{print $1}')
+readonly INITIAL_BUILDER=$(docker buildx ls 2>/dev/null | grep '\*' | awk '{print $1}' | sed 's/\*//')
 
 # Application Configuration
 readonly JAR_FILE_PATH="github-maintenance-action.jar"
@@ -57,7 +59,7 @@ readonly JAR_FILE_PATH="github-maintenance-action.jar"
 setup_buildx() {
   local builder="multiarch-builder"
 
-  if ! docker buildx ls | grep -q "$builder"; then
+  if ! docker buildx ls 2>/dev/null | grep -q "$builder"; then
     docker buildx create --name $builder --use
     docker buildx inspect --bootstrap
   else
@@ -70,12 +72,12 @@ setup_buildx() {
 teardown_buildx() {
   local builder="multiarch-builder"
 
-  if docker buildx ls | grep -q "$builder"; then
+  if docker buildx ls 2>/dev/null | grep -q "$builder"; then
     docker buildx stop $builder
     docker buildx rm $builder
   fi
 
-  docker context use "$INITIAL_BUILDER"
+  docker buildx use "$INITIAL_BUILDER"
 
   info "Docker buildx teardown completed for builder: $builder"
 }

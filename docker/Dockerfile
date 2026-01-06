@@ -15,7 +15,7 @@ ARG LOG_FOLDER=/srv/github-maintenance-action/logs
 
 ENV APP=$APP_NAME \
     JAVA_HOME=/opt/java \
-    PATH="${JAVA_HOME}/bin:${PATH}"
+    PATH="/opt/java/bin:${PATH}"
 
 USER root
 
