@@ -1,266 +1,111 @@
 package io.viascom.github.action.maintenance.api
 
 import com.google.gson.Gson
-import io.viascom.github.action.maintenance.core.Environment
-import io.viascom.github.action.maintenance.core.Environment.isDryRun
-import io.viascom.github.action.maintenance.model.*
+import io.viascom.github.action.maintenance.model.Artifact
+import io.viascom.github.action.maintenance.model.WorkflowArtifacts
+import io.viascom.github.action.maintenance.model.WorkflowRun
+import io.viascom.github.action.maintenance.model.WorkflowRuns
+import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import org.slf4j.LoggerFactory
-import org.springframework.stereotype.Service
-import java.util.concurrent.TimeUnit
+import okhttp3.Response
+import java.time.Duration
 
-@Service
-class GitHubApi(private val gson: Gson) {
-    private val log = LoggerFactory.getLogger(javaClass)
-
-    private val client = OkHttpClient.Builder()
-        .connectTimeout(60, TimeUnit.SECONDS)
-        .writeTimeout(60, TimeUnit.SECONDS)
-        .readTimeout(60, TimeUnit.SECONDS)
-        .addInterceptor(GitHubApiInterceptor())
-        .addInterceptor(RateLimitingInterceptor())
+/**
+ * The slice of the GitHub REST API this action needs, scoped to one repository.
+ * https://docs.github.com/en/rest/actions/workflow-runs and
+ * https://docs.github.com/en/rest/actions/artifacts
+ */
+class GitHubApi(
+    baseUrl: String,
+    token: String,
+    private val owner: String,
+    private val repo: String,
+    client: OkHttpClient = OkHttpClient(),
+    rateLimitInterceptor: RateLimitInterceptor = RateLimitInterceptor(),
+) {
+    private val gson = Gson()
+    private val repositoryUrl: HttpUrl = "${baseUrl.trimEnd('/')}/repos/$owner/$repo".toHttpUrl()
+    private val http = client.newBuilder()
+        .connectTimeout(TIMEOUT)
+        .readTimeout(TIMEOUT)
+        .writeTimeout(TIMEOUT)
+        .addInterceptor(GitHubApiInterceptor(token))
+        .addInterceptor(rateLimitInterceptor)
         .build()
 
-    fun rateLimit(): RateLimit {
-        val client = OkHttpClient.Builder()
-            .connectTimeout(60, TimeUnit.SECONDS)
-            .writeTimeout(60, TimeUnit.SECONDS)
-            .readTimeout(60, TimeUnit.SECONDS)
-            .addInterceptor(GitHubApiInterceptor())
-            .build()
-
-        val httpUrl = ("${Environment.githubBaseUrl}/rate_limit").toHttpUrl().newBuilder()
-
-        val request = Request.Builder()
-            .url(httpUrl.build())
-            .get()
-            .build()
-
-        return client.newCall(request).execute().body?.string()?.let { gson.fromJson(it, RateLimit::class.java) }
-            ?: throw RuntimeException("Could not load rate limits from GitHub!")
-    }
-
-    private fun listWorkflowRuns(
-        owner: String,
-        repo: String,
-        actor: String? = null,
-        branch: String? = null,
-        event: String? = null,
-        status: String? = null,
-        perPage: Int = 100, // max. 100, default 30
-        page: Int = 1,
-        created: String? = null,
-        keepPullRequests: Boolean = false,
-        checkSuiteId: Int? = null,
-        headSha: String? = null
-    ): WorkflowRuns {
-        val httpUrl = "${Environment.githubBaseUrl}/repos/$owner/$repo/actions/runs".toHttpUrl().newBuilder()
+    /**
+     * Newest runs first, as GitHub orders them. A filtered listing is capped by GitHub at
+     * [SEARCH_RESULT_CAP] results, so the caller never receives more than that per filter.
+     */
+    fun listWorkflowRuns(filter: WorkflowRunFilter = WorkflowRunFilter(), limit: Int = SEARCH_RESULT_CAP): List<WorkflowRun> = paginate(limit) { page, perPage ->
+        val url = repositoryUrl.newBuilder()
+            .addPathSegments("actions/runs")
             .addQueryParameter("per_page", perPage.toString())
             .addQueryParameter("page", page.toString())
-
-        actor?.let { httpUrl.addQueryParameter("actor", actor) }
-        branch?.let { httpUrl.addQueryParameter("branch", branch) }
-        event?.let { httpUrl.addQueryParameter("event", event) }
-        status?.let { httpUrl.addQueryParameter("status", status) }
-        created?.let { httpUrl.addQueryParameter("created", created) }
-        httpUrl.addQueryParameter("exclude_pull_requests", (!keepPullRequests).toString())
-        checkSuiteId?.let { httpUrl.addQueryParameter("check_suite_id", checkSuiteId.toString()) }
-        headSha?.let { httpUrl.addQueryParameter("head_sha", headSha) }
-
-        val request = Request.Builder()
-            .url(httpUrl.build())
-            .get()
-            .build()
-
-        return client.newCall(request).execute().body?.string()?.let { gson.fromJson(it, WorkflowRuns::class.java) } ?: WorkflowRuns()
+            .addQueryParameter("exclude_pull_requests", "true")
+        filter.actor?.let { url.addQueryParameter("actor", it) }
+        filter.branch?.let { url.addQueryParameter("branch", it) }
+        filter.event?.let { url.addQueryParameter("event", it) }
+        filter.status?.let { url.addQueryParameter("status", it.apiValue) }
+        filter.createdOnOrBefore?.let { url.addQueryParameter("created", "*..$it") }
+        val result = get(url.build(), WorkflowRuns::class.java)
+        Page(result.totalCount, result.runs)
     }
 
-    fun listWorkflowRuns(
-        owner: String,
-        repo: String,
-        actors: List<String>? = null,
-        branches: List<String>? = null,
-        events: List<WorkflowRunEvent>? = null,
-        statuses: List<WorkflowRunStatus>? = null,
-        created: String? = null,
-        keepPullRequests: Boolean = false,
-        checkSuiteId: Int? = null,
-        headSha: String? = null
-    ): WorkflowRuns {
-        var requestData = arrayListOf<RequestData>()
-        actors?.let { data -> requestData = populateRequestData(data, requestData) { actor = it } }
-        branches?.let { data -> requestData = populateRequestData(data, requestData) { branch = it } }
-        events?.map { it.name }?.let { data -> requestData = populateRequestData(data, requestData) { event = it } }
-        statuses?.map { it.name }?.let { data -> requestData = populateRequestData(data, requestData) { status = it } }
-
-        if (requestData.isEmpty()) {
-            requestData.add(RequestData())
-        }
-
-        val allWorkflowRuns = requestData.flatMap {
-            listAllWorkflowRuns(
-                owner,
-                repo,
-                it.actor,
-                it.branch,
-                it.event,
-                it.status,
-                created,
-                keepPullRequests,
-                checkSuiteId,
-                headSha
-            ).runs
-        }
-
-        return WorkflowRuns(allWorkflowRuns.size, allWorkflowRuns.toCollection(arrayListOf()))
-    }
-
-    private fun populateRequestData(
-        inputData: List<String>,
-        requestData: ArrayList<RequestData>,
-        processor: RequestData.(String) -> Unit
-    ): ArrayList<RequestData> {
-        if (inputData.isEmpty()) return requestData
-
-        return if (requestData.isEmpty()) {
-            inputData.map { RequestData().apply { processor.invoke(this, it) } }
-        } else {
-            requestData.flatMap { data -> inputData.map { data.copy().apply { processor.invoke(this, it) } } }
-        }.toCollection(arrayListOf())
-    }
-
-    private fun listAllWorkflowRuns(
-        owner: String,
-        repo: String,
-        actor: String?,
-        branch: String?,
-        event: String?,
-        status: String?,
-        created: String?,
-        keepPullRequests: Boolean,
-        checkSuiteId: Int?,
-        headSha: String?,
-    ): WorkflowRuns {
-        val workflowRuns =
-            listWorkflowRuns(owner, repo, actor, branch, event, status, 100, 1, created, keepPullRequests, checkSuiteId, headSha)
-        val remaining = workflowRuns.totalCount - 100
-        if (remaining >= 0) {
-            val totalPages = remaining / 100 + 1
-            for (i in 1..totalPages) {
-                workflowRuns.runs.addAll(
-                    listWorkflowRuns(
-                        owner = owner,
-                        repo = repo,
-                        actor = actor,
-                        branch = branch,
-                        event = event,
-                        status = status,
-                        perPage = 100,
-                        page = i + 1,
-                        created = created,
-                        keepPullRequests = keepPullRequests,
-                        checkSuiteId = checkSuiteId,
-                        headSha = headSha
-                    ).runs
-                )
-            }
-        }
-
-        log.info("\uD83D\uDD0D Found ${workflowRuns.runs.size} workflow runs.")
-
-        return workflowRuns
-    }
-
-    fun deleteWorkflowRun(owner: String, repo: String, runId: Long) {
-        val request = Request.Builder()
-            .url("${Environment.githubBaseUrl}/repos/$owner/$repo/actions/runs/$runId")
-            .delete()
-            .build()
-
-        if (!isDryRun) {
-            client.newCall(request).execute()
-            log.info("\uD83E\uDEE7 Deleted workflow run with id $runId.")
-        } else {
-            log.info("\uD83E\uDD21 Pretending to deleted workflow run with id $runId.")
-        }
-    }
-
-    fun deleteWorkflowRunLogs(owner: String, repo: String, runId: Long) {
-        val request = Request.Builder()
-            .url("${Environment.githubBaseUrl}/repos/$owner/$repo/actions/runs/$runId/logs")
-            .delete()
-            .build()
-
-        if (!isDryRun) {
-            client.newCall(request).execute()
-            log.info("\uD83D\uDCC4 Deleted logs of workflow run $runId.")
-        } else {
-            log.info("\uD83E\uDD21 Pretending to deleted logs of workflow run $runId.")
-        }
-    }
-
-    private fun listWorkflowRunArtifacts(
-        owner: String,
-        repo: String,
-        runId: Long,
-        perPage: Int = 30, // max. 100
-        page: Int = 1,
-        name: String? = null
-    ): WorkflowArtifacts {
-        val httpUrl = "${Environment.githubBaseUrl}/repos/$owner/$repo/actions/runs/$runId/artifacts".toHttpUrl().newBuilder()
+    /** Every artifact of the run [runId], expired ones included. */
+    fun listArtifacts(runId: Long): List<Artifact> = paginate(Int.MAX_VALUE) { page, perPage ->
+        val url = repositoryUrl.newBuilder()
+            .addPathSegments("actions/runs/$runId/artifacts")
             .addQueryParameter("per_page", perPage.toString())
             .addQueryParameter("page", page.toString())
-
-        name?.let { httpUrl.addQueryParameter("name", name) }
-
-        val request = Request.Builder()
-            .url(httpUrl.build())
-            .get()
             .build()
-
-        return client.newCall(request).execute().body?.string()?.let { gson.fromJson(it, WorkflowArtifacts::class.java) } ?: WorkflowArtifacts()
+        val result = get(url, WorkflowArtifacts::class.java)
+        Page(result.totalCount, result.artifacts)
     }
 
-    fun listWorkflowRunArtifacts(
-        owner: String,
-        repo: String,
-        runId: Long,
-    ): WorkflowArtifacts {
-        val workflowRunArtifacts = listWorkflowRunArtifacts(owner, repo, runId, 100, 1)
-        val remaining = workflowRunArtifacts.totalCount - 100
-        if (remaining >= 0) {
-            val totalPages = remaining / 100 + 1
-            for (i in 1..totalPages) {
-                workflowRunArtifacts.artifacts.addAll(
-                    listWorkflowRunArtifacts(
-                        owner = owner,
-                        repo = repo,
-                        runId = runId,
-                        perPage = 100,
-                        page = i + 1
-                    ).artifacts
-                )
-            }
+    /** Deletes the run [runId] with its logs and artifacts. @throws GitHubApiException on any non-2xx answer. */
+    fun deleteWorkflowRun(runId: Long) = delete(repositoryUrl.newBuilder().addPathSegments("actions/runs/$runId").build())
+
+    /** Deletes only the logs of the run [runId]. @throws GitHubApiException on any non-2xx answer. */
+    fun deleteWorkflowRunLogs(runId: Long) = delete(repositoryUrl.newBuilder().addPathSegments("actions/runs/$runId/logs").build())
+
+    /** Deletes the artifact [artifactId]. @throws GitHubApiException on any non-2xx answer. */
+    fun deleteArtifact(artifactId: Long) = delete(repositoryUrl.newBuilder().addPathSegments("actions/artifacts/$artifactId").build())
+
+    private data class Page<T>(val totalCount: Int, val items: List<T>)
+
+    private fun <T> paginate(limit: Int, fetch: (page: Int, perPage: Int) -> Page<T>): List<T> {
+        if (limit <= 0) return emptyList()
+        val perPage = minOf(limit, MAX_PER_PAGE)
+        val collected = ArrayList<T>()
+        var page = 1
+        while (collected.size < limit) {
+            val result = fetch(page, perPage)
+            collected += result.items
+            if (result.items.isEmpty() || collected.size >= result.totalCount) break
+            page++
         }
-
-        log.info("\uD83D\uDD0D Found ${workflowRunArtifacts.artifacts.size} artifacts in workflow run $runId.")
-
-        return workflowRunArtifacts
+        return collected.take(limit)
     }
 
-    fun deleteArtifact(owner: String, repo: String, artifactId: Long) {
-        val request = Request.Builder()
-            .url("${Environment.githubBaseUrl}/repos/$owner/$repo/actions/artifacts/$artifactId")
-            .delete()
-            .build()
+    private fun <T> get(url: HttpUrl, type: Class<T>): T = execute(Request.Builder().url(url).get().build()) { gson.fromJson(it.body.charStream(), type) }
 
-        if (!isDryRun) {
-            client.newCall(request).execute()
-            log.info("\uD83D\uDCC4 Deleted workflow artifact with id $artifactId.")
-        } else {
-            log.info("\uD83E\uDD21 Pretending to deleted workflow artifact with id $artifactId.")
+    private fun delete(url: HttpUrl) {
+        execute(Request.Builder().url(url).delete().build()) { }
+    }
+
+    private inline fun <T> execute(request: Request, onSuccess: (Response) -> T): T = http.newCall(request).execute().use { response ->
+        if (!response.isSuccessful) {
+            throw GitHubApiException(request.method, request.url.toString(), response.code, response.body.string())
         }
+        onSuccess(response)
+    }
+
+    companion object {
+        const val MAX_PER_PAGE = 100
+        const val SEARCH_RESULT_CAP = 1000
+        private val TIMEOUT: Duration = Duration.ofSeconds(60)
     }
 }

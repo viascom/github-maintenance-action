@@ -1,47 +1,38 @@
-# Build-time container
-FROM viascom/jdk:21.0.9 AS builder
-ARG JAR_FILE
+# Two-stage build in the Viascom convention: the builder (full JDK) jlinks a minimal,
+# application-specific JRE and explodes the Spring Boot jar into its layers; the runtime
+# (viascom/ubuntu, non-root, dumb-init as PID 1) ships only that JRE and those layers.
+#
+# The build context is the repository root:
+#   ./gradlew build && docker build -f docker/Dockerfile -t github-maintenance-action .
+
+FROM viascom/jdk:25.0.4.1@sha256:97c68b1948f5a586e8a7a03b54598e77edf67811dc08d51fcea5971e0650cc35 AS builder
+ARG JAR_FILE=build/libs/github-maintenance-action.jar
 USER root
 WORKDIR /tmp/application
 COPY $JAR_FILE application.jar
-COPY build_application.sh ./
+COPY docker/build_application.sh ./
 RUN bash build_application.sh
 
-# Run-time container
-FROM viascom/ubuntu:24.04.3 AS runtime
+FROM viascom/ubuntu:26.04@sha256:126c749c6bb0e08ab3afc4b58e494b8e20f25ccbe803441c9cdd97696c055341 AS runtime
 
 ARG APP_NAME=github-maintenance-action
-ARG LOG_FOLDER=/srv/github-maintenance-action/logs
 
 ENV APP=$APP_NAME \
     JAVA_HOME=/opt/java \
     PATH="/opt/java/bin:${PATH}"
 
+# A Docker container action runs as root and without a WORKDIR: the runner mounts its
+# workspace and the GITHUB_OUTPUT / GITHUB_STEP_SUMMARY files into the container, and only
+# root is guaranteed to write them (https://docs.github.com/en/actions/sharing-automations/creating-actions/dockerfile-support-for-github-actions).
 USER root
 
-## Adding programs for operation
-COPY packages.list /tmp
-RUN apt-get update && xargs -r apt-get install --no-install-recommends --yes < /tmp/packages.list && \
-    apt-get clean && rm -rf /var/lib/apt/lists /var/cache/apt/archives /tmp/* /var/tmp/*
-
-WORKDIR /srv/$APP
-
-COPY run_application.sh /etc
-
-RUN mkdir -p $LOG_FOLDER && \
-    chgrp $GROUP $LOG_FOLDER && \
-    chmod g+rwx $LOG_FOLDER && \
-    chmod +x /etc/run_application.sh
-
-## Application-specif created JRE
+COPY --chmod=755 docker/run_application.sh /etc/run_application.sh
 COPY --from=builder /opt/java-runtime $JAVA_HOME
 
-## Spring Boot Layers
-COPY --from=builder /tmp/application/spring-boot-loader/ ./
-COPY --from=builder /tmp/application/dependencies/ ./
-COPY --from=builder /tmp/application/snapshot-dependencies/ ./
-COPY --from=builder /tmp/application/application/ ./
-
-USER $USER
+# Most stable layer first, so a rebuild with unchanged dependencies reuses the cache.
+COPY --from=builder /tmp/application/extracted/spring-boot-loader/ /srv/$APP_NAME/
+COPY --from=builder /tmp/application/extracted/dependencies/ /srv/$APP_NAME/
+COPY --from=builder /tmp/application/extracted/snapshot-dependencies/ /srv/$APP_NAME/
+COPY --from=builder /tmp/application/extracted/application/ /srv/$APP_NAME/
 
 CMD ["/etc/run_application.sh"]

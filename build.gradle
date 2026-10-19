@@ -1,27 +1,32 @@
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask
-
+// Every version below carries its Maven Central publication date: the 3-day minimum
+// release age is policy and nothing on the Gradle side enforces it.
 plugins {
-    id "idea"
-    id "application"
-    id "maven-publish"
-    id "org.jetbrains.kotlin.jvm" version "2.3.0"
+    // Kotlin 2.4.21, published 2026-10-08. The jvm and spring plugins share one version.
+    id "org.jetbrains.kotlin.jvm" version "2.4.21"
+    id "org.jetbrains.kotlin.plugin.spring" version "2.4.21"
+    // Spring Boot 4.1.1, published 2026-08-20.
+    id "org.springframework.boot" version "4.1.1"
+    // 1.1.7, published 2024-12-17, is the newest release of this plugin.
     id "io.spring.dependency-management" version "1.1.7"
-    id "org.springframework.boot" version "3.5.7"
+    id "jacoco"
 }
 
-defaultTasks("clean", "build")
-
 group = "io.viascom.github.action.maintenance"
+version = "1.0.0"
 
-def major = "0"
-def minor = "2"
-def patch = "0"
+// Spring Boot's dependency management pins Kotlin to the version it ships with; this keeps
+// the stdlib on the same version as the compiler plugin above.
+ext["kotlin.version"] = "2.4.21"
 
-version = "$major.$minor.$patch"
-
-java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
+kotlin {
+    // Java 25 LTS from Azul, matching the viascom/jdk builder image in docker/Dockerfile.
+    jvmToolchain {
+        languageVersion = JavaLanguageVersion.of(25)
+        vendor = JvmVendorSpec.AZUL
+    }
+    compilerOptions {
+        freeCompilerArgs.add("-Xjsr305=strict")
+        allWarningsAsErrors = true
     }
 }
 
@@ -29,65 +34,71 @@ bootJar {
     archiveFileName = "github-maintenance-action.jar"
 }
 
-application {
-    mainClass = "io.viascom.github.action.maintenance.GitHubActionApplication"
-}
-
-springBoot {
-    buildInfo()
-}
-
 repositories {
     mavenCentral()
-    maven {
-        url = uri("https://maven.pkg.github.com/viascom/*")
-        credentials {
-            username = project.findProperty("gpr.user") ?: System.getenv("GITHUB_ACTOR")
-            password = project.findProperty("gpr.token") ?: System.getenv("GITHUB_TOKEN")
-        }
-    }
 }
 
 dependencies {
     implementation "org.springframework.boot:spring-boot-starter"
-    implementation "org.jetbrains.kotlin:kotlin-stdlib"
+    // 5.5.0, published 2026-08-16.
+    implementation "com.squareup.okhttp3:okhttp:5.5.0"
+    // 2.14.0, published 2026-04-23.
+    implementation "com.google.code.gson:gson:2.14.0"
 
-    implementation "com.squareup.okhttp3:okhttp:5.3.2"
-    implementation "com.google.code.gson:gson:2.13.2"
-    implementation "com.bucket4j:bucket4j-core:8.10.1"
-//    implementation "com.bucket4j:bucket4j_jdk17-core:8.14.0"
-
-    annotationProcessor "org.springframework:spring-context-indexer"
-
-    testImplementation "org.springframework.boot:spring-boot-starter-test"
+    testImplementation "org.junit.jupiter:junit-jupiter"
+    testRuntimeOnly "org.junit.platform:junit-platform-launcher"
+    // 1.14.11, published 2026-05-29.
+    testImplementation "io.mockk:mockk:1.14.11"
+    // 1.2.0, published 2024-03-26, is the newest release of atrium.
+    testImplementation "ch.tutteli.atrium:atrium-infix:1.2.0"
+    // 5.5.0, published 2026-08-16, the same release as okhttp above.
+    testImplementation "com.squareup.okhttp3:mockwebserver3-junit5:5.5.0"
 }
 
-test {
+tasks.withType(Test).configureEach {
     useJUnitPlatform()
+    // MockK's byte-buddy agent still reaches for sun.misc.Unsafe and appends to the boot
+    // class path; the two flags keep JDK 25 from printing a warning for each.
+    jvmArgs += ["-Duser.timezone=UTC", "--sun-misc-unsafe-memory-access=allow", "-Xshare:off"]
 }
 
-kotlin {
-    kotlin {
-        compilerOptions {
-            freeCompilerArgs.addAll "-Xjsr305=strict"
-        }
+jacoco {
+    // 0.8.15, published 2026-06-04.
+    toolVersion = "0.8.15"
+}
+
+// Only the Spring Boot entry point is excluded: a @SpringBootApplication class whose bean
+// methods wire the three collaborators together and whose main() calls runApplication.
+def coverageExclusions = [
+    "io/viascom/github/action/maintenance/GitHubActionApplication*",
+]
+
+def withoutExcluded = { classDirs ->
+    files(classDirs.files.collect { fileTree(dir: it, exclude: coverageExclusions) })
+}
+
+jacocoTestReport {
+    dependsOn test
+    reports {
+        xml.required = true
+        html.required = true
     }
-    tasks.withType(KotlinCompilationTask).configureEach {
-        compilerOptions {
-            freeCompilerArgs.add("-Xjsr305=strict")
+    classDirectories.setFrom(withoutExcluded(classDirectories))
+}
+
+// The thresholds are the Viascom gate (INSTRUCTION 0.90 / BRANCH 0.80 / METHOD 0.85 /
+// LINE 0.90) and are never lowered without explicit approval.
+jacocoTestCoverageVerification {
+    dependsOn jacocoTestReport
+    classDirectories.setFrom(withoutExcluded(classDirectories))
+    violationRules {
+        rule {
+            limit { counter = "INSTRUCTION"; value = "COVEREDRATIO"; minimum = 0.90 }
+            limit { counter = "BRANCH";      value = "COVEREDRATIO"; minimum = 0.80 }
+            limit { counter = "METHOD";      value = "COVEREDRATIO"; minimum = 0.85 }
+            limit { counter = "LINE";        value = "COVEREDRATIO"; minimum = 0.90 }
         }
     }
 }
 
-publishing {
-    repositories {
-        maven {
-            name = "GitHubPackages"
-            url = uri("https://maven.pkg.github.com/viascom/github-maintenance-action")
-            credentials {
-                username = project.findProperty("gpr.user") ?: System.getenv("GITHUB_ACTOR")
-                password = project.findProperty("gpr.token") ?: System.getenv("GITHUB_TOKEN")
-            }
-        }
-    }
-}
+check.dependsOn jacocoTestCoverageVerification

@@ -1,106 +1,94 @@
 package io.viascom.github.action.maintenance.core
 
 import io.viascom.github.action.maintenance.api.GitHubApi
+import io.viascom.github.action.maintenance.model.WorkflowRun
 import org.slf4j.LoggerFactory
-import org.springframework.stereotype.Service
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
-import java.util.concurrent.TimeUnit
+import java.time.Clock
+import java.time.Duration
+import java.time.LocalDate
 
-@Service
-class MaintenanceExecutor(private val githubApi: GitHubApi) {
-
+/**
+ * Runs one maintenance pass over the repository named in [settings]: lists the candidates,
+ * deletes what the settings ask for, and reports the counts.
+ */
+class MaintenanceExecutor(
+    private val api: GitHubApi,
+    private val settings: Settings,
+    private val clock: Clock = Clock.systemUTC(),
+    private val pause: (Duration) -> Unit = { Thread.sleep(it) },
+) {
     private val log = LoggerFactory.getLogger(javaClass)
 
-    fun deleteOldActionRuns(owner: String, repo: String, retentionDays: Int) {
-        log.info("Starting maintenance for $owner/$repo (retentionDays=$retentionDays)")
+    private var runsDeleted = 0
+    private var logsDeleted = 0
+    private var artifactsDeleted = 0
+    private var failures = 0
 
-        val keepMinimumRuns = Environment.keepMinimumRuns
-        val actors = Environment.actors
-        val branches = Environment.branches
-        val events = Environment.events
-        val statuses = Environment.statuses
-        val deleteLogs = Environment.deleteLogs
-        val deleteArtifacts = Environment.deleteArtifacts
-        val keepPullRequests = Environment.isKeepPullRequests
+    /**
+     * Processes every candidate run once. Failed operations are counted, not thrown, so one
+     * refused deletion does not stop the rest.
+     *
+     * @return the counts of this pass, including the number of failed operations
+     */
+    fun run(): MaintenanceSummary {
+        log.info("Maintenance for {}/{}: retentionDays={}, keepMinimumRuns={}, dryRun={}", settings.owner, settings.repo, settings.retentionDays, settings.keepMinimumRuns, settings.dryRun)
 
-        val allWorkflowRuns = githubApi.listWorkflowRuns(owner = owner, repo = repo)
+        val runsToKeep = api.listWorkflowRuns(limit = settings.keepMinimumRuns).map { it.id }.toSet()
+        log.info("Keeping the {} newest workflow runs: {}", runsToKeep.size, runsToKeep)
 
-        if (allWorkflowRuns.totalCount <= keepMinimumRuns) {
-            log.info("Total workflow runs (${allWorkflowRuns.totalCount}) <= keepMinimumRuns ($keepMinimumRuns). Skipping maintenance.")
-            return
-        }
+        val cutoff = LocalDate.now(clock).minusDays(settings.retentionDays.toLong())
+        val candidates = settings.workflowRunFilters()
+            .flatMap { api.listWorkflowRuns(it.copy(createdOnOrBefore = cutoff)) }
+            .distinctBy { it.id }
+            .filterNot { it.id in runsToKeep }
+            .filterNot { it.id == settings.currentRunId }
+            .filterNot { settings.keepPullRequests && it.isPullRequestRun }
+        log.info("Found {} workflow runs created on or before {} to process", candidates.size, cutoff)
 
-        val runsToKeep = allWorkflowRuns.runs.take(keepMinimumRuns).map { it.id }.toSet()
-        log.info("Keeping $keepMinimumRuns latest workflow runs: $runsToKeep")
+        candidates.forEach(::process)
 
-        val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
-        val formattedDate = LocalDateTime.now().minusDays(retentionDays.toLong()).format(dateFormatter)
-
-        val workflowRuns = githubApi.listWorkflowRuns(
-            owner = owner,
-            repo = repo,
-            actors = actors,
-            branches = branches,
-            events = events,
-            statuses = statuses,
-            created = "*..$formattedDate",
-            keepPullRequests = keepPullRequests,
-        )
-
-        val runsToProcess = workflowRuns.runs.filter { it.id !in runsToKeep }
-
-        log.info("Found ${runsToProcess.size} workflow runs to process (older than $formattedDate)")
-
-        var runsDeleted = 0
-        var artifactsDeleted = 0
-        var logsDeleted = 0
-
-        runsToProcess.forEach { run ->
-            log.info("Processing workflow run [id=${run.id}, name=${run.name}, status=${run.status}]")
-
-            if (deleteLogs) {
-                runCatching {
-                    log.info("Deleting logs for workflow run ${run.id}")
-                    githubApi.deleteWorkflowRunLogs(owner, repo, run.id)
-                    logsDeleted++
-                }.onFailure { log.warn("Failed to delete logs for run ${run.id}: ${it.message}") }
-
-                applyApiDelay()
-            }
-
-            if (deleteArtifacts) {
-                runCatching {
-                    val workflowRunArtifacts = githubApi.listWorkflowRunArtifacts(owner, repo, run.id)
-                    workflowRunArtifacts.artifacts.forEach { artifact ->
-                        log.info("Deleting artifact [id=${artifact.id}, name=${artifact.name}]")
-                        githubApi.deleteArtifact(owner, repo, artifact.id)
-                        artifactsDeleted++
-                        applyApiDelay()
-                    }
-                }.onFailure { log.warn("Failed to delete artifacts for run ${run.id}: ${it.message}") }
-            }
-
-            if (!deleteLogs && !deleteArtifacts) {
-                runCatching {
-                    log.info("Deleting entire workflow run ${run.id}")
-                    githubApi.deleteWorkflowRun(owner, repo, run.id)
-                    runsDeleted++
-                }.onFailure { log.warn("Failed to delete workflow run ${run.id}: ${it.message}") }
-
-                applyApiDelay()
-            }
-        }
-
-        log.info("Maintenance completed for $owner/$repo")
-        log.info("Summary: runsDeleted=$runsDeleted, artifactsDeleted=$artifactsDeleted, logsDeleted=$logsDeleted")
+        val summary = MaintenanceSummary(settings.dryRun, candidates.size, runsDeleted, logsDeleted, artifactsDeleted, failures)
+        log.info("Summary: {} {} runs, {} logs, {} artifacts; failures={}", summary.verb, summary.runsDeleted, summary.logsDeleted, summary.artifactsDeleted, summary.failures)
+        return summary
     }
 
-    private fun applyApiDelay() {
-        try {
-            TimeUnit.MILLISECONDS.sleep(1000L)
-        } catch (e: InterruptedException) {
-            Thread.currentThread().interrupt()
+    private fun process(run: WorkflowRun) {
+        log.info("Workflow run {} [{}, {}, {}/{}, created {}]", run.id, run.name, run.event, run.status, run.conclusion, run.createdAt)
+        if (settings.deleteLogs) {
+            mutate("logs of workflow run ${run.id}", { api.deleteWorkflowRunLogs(run.id) }) { logsDeleted++ }
         }
+        if (settings.deleteArtifacts) {
+            attempt("list artifacts of workflow run ${run.id}") { api.listArtifacts(run.id) }?.forEach { artifact ->
+                mutate("artifact ${artifact.id} (${artifact.name}) of workflow run ${run.id}", { api.deleteArtifact(artifact.id) }) { artifactsDeleted++ }
+            }
+        }
+        if (settings.deletesEntireRuns) {
+            mutate("workflow run ${run.id}", { api.deleteWorkflowRun(run.id) }) { runsDeleted++ }
+        }
+    }
+
+    private fun mutate(subject: String, action: () -> Unit, onDeleted: () -> Unit) {
+        if (settings.dryRun) {
+            log.info("Dry run: would delete {}", subject)
+            onDeleted()
+            return
+        }
+        attempt("delete $subject") {
+            action()
+            log.info("Deleted {}", subject)
+            onDeleted()
+        }
+        pause(MUTATION_PAUSE)
+    }
+
+    private fun <T> attempt(description: String, block: () -> T): T? = runCatching(block).getOrElse {
+        failures++
+        log.warn("Failed to {}: {}", description, it.message)
+        null
+    }
+
+    private companion object {
+        /** GitHub asks for at least one second between mutating requests to avoid secondary rate limits. */
+        val MUTATION_PAUSE: Duration = Duration.ofSeconds(1)
     }
 }
