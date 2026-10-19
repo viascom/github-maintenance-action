@@ -140,6 +140,27 @@ class MaintenanceExecutorTest {
         verify { api.deleteWorkflowRun(5) }
     }
 
+    /** Requirement pinned: queued and running runs are left alone unless a status filter names them, since GitHub refuses to delete them. */
+    @Test
+    fun `skips runs that are not completed unless statuses are filtered`() {
+        val inProgress = WorkflowRun(id = 3, name = "CI", event = "push", status = "in_progress")
+        val queued = WorkflowRun(id = 4, name = "CI", event = "push", status = "queued")
+        stubListings(newest = emptyList(), old = mapOf(WorkflowRunFilter() to listOf(inProgress, queued, run(5))))
+
+        executor().run()
+
+        verify(exactly = 0) { api.deleteWorkflowRun(3) }
+        verify(exactly = 0) { api.deleteWorkflowRun(4) }
+        verify { api.deleteWorkflowRun(5) }
+
+        val filter = WorkflowRunFilter(status = WorkflowRunStatus.IN_PROGRESS)
+        stubListings(newest = emptyList(), old = mapOf(filter to listOf(inProgress)))
+
+        executor(settings.copy(statuses = listOf(WorkflowRunStatus.IN_PROGRESS))).run()
+
+        verify { api.deleteWorkflowRun(3) }
+    }
+
     /** Requirement pinned: the run executing the action is never a candidate, whatever the retention says. */
     @Test
     fun `never deletes its own workflow run`() {

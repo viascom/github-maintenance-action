@@ -39,8 +39,9 @@ touch.
    per combination of the `actors`, `branches`, `events` and `statuses` values. GitHub returns
    at most 1000 runs per query, so a repository with more old runs than that is cleaned over
    several scheduled runs.
-3. Drops the kept runs, the run that is executing the action, and, with
-   `keep_pull_requests`, every run triggered by `pull_request` or `pull_request_target`.
+3. Drops the kept runs, the run that is executing the action, queued and running runs unless
+   `statuses` names them, and, with `keep_pull_requests`, every run triggered by `pull_request`
+   or `pull_request_target`.
 4. For each remaining run: deletes its logs if `delete_logs` is set, its artifacts if
    `delete_artifacts` is set, and the whole run if neither is set. It waits one second between
    deletions, as GitHub asks for mutating requests.
@@ -153,7 +154,9 @@ running the image directly behaves exactly like the action.
 
 To release, set the version in `build.gradle` and in the image reference in `action.yml`, merge,
 and push the tag `vX.Y.Z`. The release workflow verifies the two match, runs the build, pushes the
-multi-arch image, publishes the GitHub release notes and moves the `vX` tag.
+multi-arch image, publishes the GitHub release notes and moves the `vX` tag. GitHub creates a new
+container package as private, so after the first release set the package
+`ghcr.io/viascom/github-maintenance-action` to public, or no workflow can pull the image.
 
 ## License
 

@@ -15,4 +15,8 @@ data class WorkflowRun(
 ) {
     val isPullRequestRun: Boolean
         get() = event == "pull_request" || event == "pull_request_target"
+
+    /** GitHub refuses to delete a queued or running run, so only completed runs are deleted unless a status filter asks otherwise. */
+    val isCompleted: Boolean
+        get() = status == null || status == "completed"
 }

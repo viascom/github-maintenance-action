@@ -43,6 +43,7 @@ class MaintenanceExecutor(
             .filterNot { it.id in runsToKeep }
             .filterNot { it.id == settings.currentRunId }
             .filterNot { settings.keepPullRequests && it.isPullRequestRun }
+            .filter { settings.statuses.isNotEmpty() || it.isCompleted }
         log.info("Found {} workflow runs created on or before {} to process", candidates.size, cutoff)
 
         candidates.forEach(::process)
