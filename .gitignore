@@ -1,59 +1,18 @@
-# Kotlin build outputs
+# Build outputs
 /build
-/bin
 /out
-
-# Kotlin compiler sessions
+/bin
+.gradle/
 .kotlin/
 
-# Gradle files
-.gradle/
-build/
-!gradle-wrapper.jar
-gradle-wrapper.properties
-gradle-wrapper/
-
-# IntelliJ IDEA
+# IDE
 .idea/
 *.iml
-*.iws
-*.ipr
+.vscode/
 
-# OS-specific
+# OS
 .DS_Store
 Thumbs.db
 
-# Logs
-*.log
-
-# JVM
-*.class
-
-# Kotlin annotation processing
-.kapt/
-.ksp/
-
-# Coverage reports
-coverage/
-*.ec
-*.exec
-
-# Others
-*.jar
-*.war
-*.ear
-
-# Local properties
+# Local overrides
 local.properties
-
-# JetBrains Rider
-.idea/
-*.sln
-*.csproj
-
-# Ignore VS Code settings
-.vscode/
-
-### Custom ###
-fastRequestCurrentProjectConfig.json
-gradle.properties
