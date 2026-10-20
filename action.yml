@@ -1,99 +1,79 @@
 name: "GitHub Maintenance Action"
-description: "Executing maintenance tasks on GitHub — delete old workflow runs, artifacts, and logs."
-author: "Viascom Ltd liab. Co | Nikola Stanković <nikola.stankovic@viascom.email>"
+description: "Deletes old workflow runs, or only their logs and artifacts, with filters, a minimum number of runs to keep and a dry run."
+author: "Viascom Ltd liab. Co"
+
+branding:
+  icon: "trash-2"
+  color: "purple"
 
 inputs:
   github_token:
-    description: "GitHub authentication token (usually pass: secrets.GITHUB_TOKEN)."
+    description: "Token with the 'actions: write' permission on the repository. The workflow's GITHUB_TOKEN works when the job grants it."
     required: true
     default: ${{ github.token }}
-
   repository:
-    description: "Repository name in format 'owner/repo'."
+    description: "Repository to clean, as owner/repo."
     required: true
     default: ${{ github.repository }}
-
   retention_days:
-    description: "Retention time in days for workflow runs to keep."
-    required: true
-    default: 31
-
+    description: "Workflow runs created more than this many days ago are candidates. 0 means every run."
+    required: false
+    default: "31"
   keep_minimum_runs:
-    description: "Minimum number of latest workflow runs to always keep."
-    required: true
-    default: 5
-
-  # OPTIONAL INPUTS
+    description: "The newest runs of the repository that are always kept, whatever their age."
+    required: false
+    default: "5"
   github_base_url:
-    description: "GitHub API base URL. Defaults to public GitHub API."
+    description: "REST API base URL, for GitHub Enterprise Server: https://HOST/api/v3."
     required: false
     default: "https://api.github.com"
-
   delete_logs:
-    description: "If true, deletes only the logs of workflow runs. If false and delete_artifacts is also false, the entire workflow run will be deleted."
+    description: "Delete only the logs of the matching runs. With delete_artifacts also false, the whole run is deleted."
     required: false
-    default: false
-
+    default: "false"
   delete_artifacts:
-    description: "If true, deletes only the artifacts of workflow runs. If false and delete_logs is also false, the entire workflow run will be deleted."
+    description: "Delete only the artifacts of the matching runs. With delete_logs also false, the whole run is deleted."
     required: false
-    default: false
-
+    default: "false"
   actors:
-    description: "Comma-separated list of actors whose workflow runs to delete. If empty, no actor filtering is applied."
+    description: "Comma-separated logins; only runs triggered by these users are candidates."
     required: false
     default: ""
-
   branches:
-    description: "Comma-separated list of branches whose workflow runs to delete. If empty, no branch filtering is applied."
+    description: "Comma-separated branch names; only runs of these branches are candidates."
     required: false
     default: ""
-
   events:
-    description: "Comma-separated list of workflow run events to delete. If empty, no event filtering is applied."
+    description: "Comma-separated trigger events, for example push,schedule; only runs with these events are candidates."
     required: false
     default: ""
-
   statuses:
-    description: "Comma-separated list of workflow run statuses to delete. If empty, no status filtering is applied."
+    description: "Comma-separated statuses or conclusions (completed, success, failure, cancelled, skipped, timed_out, ...); only matching runs are candidates."
     required: false
     default: ""
-
   keep_pull_requests:
-    description: "If true, pull request workflow runs will always be kept."
+    description: "Keep runs triggered by pull_request and pull_request_target."
     required: false
-    default: false
-
+    default: "false"
   dry_run:
-    description: "If true, logs simulated changes but does not perform any deletions (artifacts, logs, or runs)."
+    description: "Log what would be deleted without deleting anything."
     required: false
-    default: false
-
+    default: "false"
   debug:
-    description: "If true, enables debug logging."
+    description: "Log every API request."
     required: false
-    default: false
+    default: "false"
+
+outputs:
+  runs_deleted:
+    description: "Number of workflow runs deleted (or that would be, in a dry run)."
+  logs_deleted:
+    description: "Number of workflow run logs deleted (or that would be, in a dry run)."
+  artifacts_deleted:
+    description: "Number of artifacts deleted (or that would be, in a dry run)."
+  failures:
+    description: "Number of operations that failed. The step fails when this is not 0."
 
 runs:
   using: "docker"
-  image: "docker://ghcr.io/viascom/github-maintenance-action:latest"
-  args:
-    - /etc/run_application.sh
-    - ${{ inputs.github_token }}
-    - ${{ inputs.github_base_url }}
-    - ${{ inputs.repository }}
-    - ${{ inputs.retention_days }}
-    - ${{ inputs.keep_minimum_runs }}
-    - ${{ inputs.delete_logs }}
-    - ${{ inputs.delete_artifacts }}
-    - ${{ inputs.actors }}
-    - ${{ inputs.branches }}
-    - ${{ inputs.events }}
-    - ${{ inputs.statuses }}
-    - ${{ inputs.keep_pull_requests }}
-    - ${{ inputs.dry_run }}
-    - ${{ inputs.debug }}
-
-branding:
-  icon: "settings" # https://feathericons.com/ - https://docs.github.com/en/actions/creating-actions/metadata-syntax-for-github-actions#brandingicon
-  color: "purple" # The background color of the badge. Can be one of: white, yellow, blue, green, orange, red, purple, or gray-dark.
+  image: "docker://ghcr.io/viascom/github-maintenance-action:1.0.0"

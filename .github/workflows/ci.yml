@@ -1,0 +1,97 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      # The smoke test lists this repository's workflow runs in dry-run mode.
+      actions: read
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: zulu
+          java-version: 25
+          cache: gradle
+
+      - uses: gradle/actions/wrapper-validation@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+
+      # Tests, the JaCoCo coverage gate, ktlint and the boot jar the image build needs.
+      - name: Build
+        run: ./gradlew build
+
+      - name: Upload test and coverage reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: reports
+          path: |
+            build/reports/tests/test
+            build/reports/jacoco/test/html
+          retention-days: 7
+
+      # The viascom base images on Docker Hub are private, so the image steps need the
+      # DOCKERHUB_* secrets. A pull request from a fork has none and skips them.
+      - name: Decide whether the image can be built
+        id: image
+        env:
+          SAME_REPOSITORY: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+        run: echo "enabled=$SAME_REPOSITORY" >> "$GITHUB_OUTPUT"
+
+      - if: steps.image.outputs.enabled == 'true'
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - if: steps.image.outputs.enabled == 'true'
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Build image
+        if: steps.image.outputs.enabled == 'true'
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: docker/Dockerfile
+          load: true
+          tags: github-maintenance-action:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Runs the freshly built image the way the Actions runner runs a Docker container
+      # action: inputs as INPUT_* variables. Dry run, so nothing is deleted.
+      - name: Smoke test (dry run against this repository)
+        if: steps.image.outputs.enabled == 'true'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          docker run --rm \
+            -e INPUT_GITHUB_TOKEN="$GITHUB_TOKEN" \
+            -e INPUT_REPOSITORY="$GITHUB_REPOSITORY" \
+            -e INPUT_RETENTION_DAYS=0 \
+            -e INPUT_KEEP_MINIMUM_RUNS=1 \
+            -e INPUT_DRY_RUN=true \
+            -e INPUT_DEBUG=true \
+            -e GITHUB_RUN_ID="$GITHUB_RUN_ID" \
+            -e GITHUB_STEP_SUMMARY=/github/summary.md \
+            -v "$GITHUB_STEP_SUMMARY:/github/summary.md" \
+            github-maintenance-action:ci

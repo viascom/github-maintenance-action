@@ -1,34 +1,41 @@
 version: 2
 updates:
-  - package-ecosystem: "github-actions"
-    directory: "/"
+  # The 3-day cooldown mirrors the Viascom minimum release age; it does not delay security updates.
+  - package-ecosystem: github-actions
+    directory: /
     schedule:
-      interval: "daily"
-      time: "15:00"
-      timezone: "Europe/Zurich"
-    target-branch: "main"
-    labels:
-      - "github-actions"
-      - "dependencies"
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Zurich
+    cooldown:
+      default-days: 3
+    labels: [github-actions, dependencies]
 
-  - package-ecosystem: "gradle"
-    directory: "/"
+  - package-ecosystem: gradle
+    directory: /
     schedule:
-      interval: "daily"
-      time: "15:00"
-      timezone: "Europe/Zurich"
-    target-branch: "main"
-    labels:
-      - "gradle"
-      - "dependencies"
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Zurich
+    cooldown:
+      default-days: 3
+      semver-major-days: 7
+    groups:
+      minor-and-patch:
+        applies-to: version-updates
+        update-types: [minor, patch]
+        patterns: ["*"]
+    labels: [gradle, dependencies]
 
-  - package-ecosystem: "docker"
-    directory: "/docker"
+  - package-ecosystem: docker
+    directory: /docker
     schedule:
-      interval: "daily"
-      time: "15:00"
-      timezone: "Europe/Zurich"
-    target-branch: "main"
-    labels:
-      - "docker"
-      - "dependencies"
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Zurich
+    cooldown:
+      default-days: 3
+    labels: [docker, dependencies]

@@ -1,0 +1,100 @@
+name: Release
+
+# A release is a version tag. The workflow checks that build.gradle and action.yml carry the
+# same version, runs the full build, pushes the multi-arch image to GHCR and Docker Hub
+# under the semver tags, publishes the GitHub release and moves the major tag (v1) so that
+# `uses: viascom/github-maintenance-action@v1` follows the newest release.
+on:
+  push:
+    tags: ['v[0-9]+.[0-9]+.[0-9]+']
+
+permissions:
+  contents: read
+
+env:
+  IMAGE: viascom/github-maintenance-action
+
+jobs:
+  release:
+    name: Release ${{ github.ref_name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: write
+      packages: write
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Check that the tag matches the project version
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          grep -qx "version = \"$version\"" build.gradle || { echo "build.gradle does not declare version $version" >&2; exit 1; }
+          grep -qx "  image: \"docker://ghcr.io/$IMAGE:$version\"" action.yml || { echo "action.yml does not reference image $version" >&2; exit 1; }
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: zulu
+          java-version: 25
+          cache: gradle
+
+      - uses: gradle/actions/wrapper-validation@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+
+      - name: Build
+        run: ./gradlew build
+
+      - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
+
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - id: meta
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
+        with:
+          images: |
+            ghcr.io/${{ env.IMAGE }}
+            docker.io/${{ env.IMAGE }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+          labels: |
+            org.opencontainers.image.title=GitHub Maintenance Action
+            org.opencontainers.image.vendor=Viascom Ltd liab. Co
+            org.opencontainers.image.licenses=MIT
+
+      - name: Build and push image
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: docker/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          annotations: ${{ steps.meta.outputs.annotations }}
+          provenance: mode=max
+          sbom: true
+
+      - name: Move the major version tag
+        run: |
+          major="v${VERSION%%.*}"
+          git tag --force "$major" "$GITHUB_SHA"
+          git push --force origin "refs/tags/$major"
+
+      - uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
+        with:
+          name: ${{ github.ref_name }}
+          generate_release_notes: true
+          make_latest: true
