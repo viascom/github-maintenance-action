@@ -50,12 +50,13 @@ jobs:
           retention-days: 7
 
       # The viascom base images on Docker Hub are private, so the image steps need the
-      # DOCKERHUB_* secrets. A pull request from a fork has none and skips them.
+      # DOCKERHUB_* secrets. A pull request from a fork has none, and a Dependabot run only
+      # sees Dependabot secrets, so both skip them.
       - name: Decide whether the image can be built
         id: image
         env:
-          SAME_REPOSITORY: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
-        run: echo "enabled=$SAME_REPOSITORY" >> "$GITHUB_OUTPUT"
+          CAN_BUILD_IMAGE: ${{ github.actor != 'dependabot[bot]' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
+        run: echo "enabled=$CAN_BUILD_IMAGE" >> "$GITHUB_OUTPUT"
 
       - if: steps.image.outputs.enabled == 'true'
         uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
