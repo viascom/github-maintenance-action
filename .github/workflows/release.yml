@@ -1,9 +1,10 @@
 name: Release
 
-# A release is a version tag. The workflow checks that build.gradle and action.yml carry the
-# same version, runs the full build, pushes the multi-arch image to GHCR and Docker Hub
-# under the semver tags, publishes the GitHub release and moves the major tag (v1) so that
-# `uses: viascom/github-maintenance-action@v1` follows the newest release.
+# A release is a version tag. The workflow checks that build.gradle carries the tag's version,
+# runs the full build, pushes the multi-arch image to GHCR and Docker Hub under the semver tags,
+# pins action.yml to the digest of that image in a commit pushed to main, moves the release tag
+# and the major tag (v1) onto that commit, and publishes the GitHub release. The digest pin is
+# what makes a consumer's commit pin immutable: a registry tag can be repointed, a digest cannot.
 on:
   push:
     tags: ['v[0-9]+.[0-9]+.[0-9]+']
@@ -30,7 +31,7 @@ jobs:
         run: |
           version="${GITHUB_REF_NAME#v}"
           grep -qx "version = \"$version\"" build.gradle || { echo "build.gradle does not declare version $version" >&2; exit 1; }
-          grep -qx "  image: \"docker://ghcr.io/$IMAGE:$version\"" action.yml || { echo "action.yml does not reference image $version" >&2; exit 1; }
+          grep -qxE "  image: \"docker://ghcr.io/$IMAGE@sha256:[0-9a-f]{64}\"" action.yml || { echo "action.yml does not reference the image by digest" >&2; exit 1; }
           echo "VERSION=$version" >> "$GITHUB_ENV"
 
       - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
@@ -75,6 +76,7 @@ jobs:
             org.opencontainers.image.licenses=MIT
 
       - name: Build and push image
+        id: build
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
@@ -87,11 +89,28 @@ jobs:
           provenance: mode=max
           sbom: true
 
+      # The digest exists only after the push. Pushes with GITHUB_TOKEN do not start another run,
+      # so moving the release tag here does not trigger this workflow again.
+      - name: Pin action.yml to the image digest and move the release tag
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          sed -i -E "s|^(  image: \"docker://ghcr.io/$IMAGE)@sha256:[0-9a-f]+\"|\1@$DIGEST\"|" action.yml
+          grep -qx "  image: \"docker://ghcr.io/$IMAGE@$DIGEST\"" action.yml
+          if git diff --quiet; then
+            echo "action.yml already pins $DIGEST"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "chore(release): pin action.yml to the $VERSION image digest"
+          git push origin HEAD:main
+          git push --force origin "HEAD:refs/tags/$GITHUB_REF_NAME"
+
       - name: Move the major version tag
         run: |
           major="v${VERSION%%.*}"
-          git tag --force "$major" "$GITHUB_SHA"
-          git push --force origin "refs/tags/$major"
+          git push --force origin "HEAD:refs/tags/$major"
 
       - uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
