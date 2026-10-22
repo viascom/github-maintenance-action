@@ -132,7 +132,8 @@ up to three times before counting the operation as failed.
 Releases follow semantic versioning. `@v1` follows the newest 1.x release, `@v1.0.0` pins one.
 Every release ships a Docker image under the same version to `ghcr.io/viascom/github-maintenance-action`
 and `docker.io/viascom/github-maintenance-action`, and `action.yml` at a release tag references
-exactly that image version, so a pinned action always runs the same code.
+that image by digest, not by tag. A pinned action therefore runs the same image bytes on every
+run, whatever happens to the tags in the registry.
 
 ## Development
 
@@ -152,9 +153,10 @@ docker run --rm \
 The Actions runner hands inputs to a Docker container action as `INPUT_<NAME>` variables, so
 running the image directly behaves exactly like the action.
 
-To release, set the version in `build.gradle` and in the image reference in `action.yml`, merge,
-and push the tag `vX.Y.Z`. The release workflow verifies the two match, runs the build, pushes the
-multi-arch image, publishes the GitHub release notes and moves the `vX` tag. GitHub creates a new
+To release, set the version in `build.gradle`, merge, and push the tag `vX.Y.Z`. The release
+workflow verifies the version, runs the build, pushes the multi-arch image, pins `action.yml` to
+the digest of that image in a commit it pushes to `main`, moves the tags `vX.Y.Z` and `vX` onto
+that commit, and publishes the GitHub release notes. GitHub creates a new
 container package as private, so after the first release set the package
 `ghcr.io/viascom/github-maintenance-action` to public, or no workflow can pull the image.
 

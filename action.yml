@@ -76,4 +76,5 @@ outputs:
 
 runs:
   using: "docker"
-  image: "docker://ghcr.io/viascom/github-maintenance-action:1.0.0"
+  # The release workflow writes the digest of the release image here. A tag would let whoever can push to the registry change the code that runs.
+  image: "docker://ghcr.io/viascom/github-maintenance-action@sha256:888cb834e95c603dcfe812d34f452d5369bc90d165fd72b7117632f4911851b2"

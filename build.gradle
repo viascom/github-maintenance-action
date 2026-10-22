@@ -12,7 +12,7 @@ plugins {
 }
 
 group = "io.viascom.github.action.maintenance"
-version = "1.0.0"
+version = "1.0.1"
 
 // Spring Boot's dependency management pins Kotlin to the version it ships with; this keeps
 // the stdlib on the same version as the compiler plugin above.
