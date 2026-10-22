@@ -90,27 +90,28 @@ jobs:
           sbom: true
 
       # The digest exists only after the push. Pushes with GITHUB_TOKEN do not start another run,
-      # so moving the release tag here does not trigger this workflow again.
-      - name: Pin action.yml to the image digest and move the release tag
+      # so moving the tags here does not trigger this workflow again. The tags move before the
+      # push to main: main may have moved since the tag, and then the pin is applied again on
+      # top of the current main instead of failing the release.
+      - name: Pin action.yml to the image digest and move the tags
         env:
           DIGEST: ${{ steps.build.outputs.digest }}
         run: |
-          sed -i -E "s|^(  image: \"docker://ghcr.io/$IMAGE)@sha256:[0-9a-f]+\"|\1@$DIGEST\"|" action.yml
-          grep -qx "  image: \"docker://ghcr.io/$IMAGE@$DIGEST\"" action.yml
-          if git diff --quiet; then
-            echo "action.yml already pins $DIGEST"
-            exit 0
-          fi
+          pin() {
+            sed -i -E "s|^(  image: \"docker://ghcr.io/$IMAGE)@sha256:[0-9a-f]+\"|\1@$DIGEST\"|" action.yml
+            grep -qx "  image: \"docker://ghcr.io/$IMAGE@$DIGEST\"" action.yml
+            git diff --quiet || git commit -am "chore(release): pin action.yml to the $VERSION image digest"
+          }
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -am "chore(release): pin action.yml to the $VERSION image digest"
-          git push origin HEAD:main
-          git push --force origin "HEAD:refs/tags/$GITHUB_REF_NAME"
-
-      - name: Move the major version tag
-        run: |
-          major="v${VERSION%%.*}"
-          git push --force origin "HEAD:refs/tags/$major"
+          pin
+          git push --force origin "HEAD:refs/tags/$GITHUB_REF_NAME" "HEAD:refs/tags/v${VERSION%%.*}"
+          git push origin HEAD:main || {
+            git fetch origin main
+            git checkout -q FETCH_HEAD
+            pin
+            git push origin HEAD:main
+          }
 
       - uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
