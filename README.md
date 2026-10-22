@@ -156,7 +156,9 @@ running the image directly behaves exactly like the action.
 To release, set the version in `build.gradle`, merge, and push the tag `vX.Y.Z`. The release
 workflow verifies the version, runs the build, pushes the multi-arch image, pins `action.yml` to
 the digest of that image in a commit it pushes to `main`, moves the tags `vX.Y.Z` and `vX` onto
-that commit, and publishes the GitHub release notes. GitHub creates a new
+that commit, and publishes the GitHub release notes. When `main` moved on since the tag, the
+tags stay on the release commit and `main` gets its own pin commit, as long as `main` still
+declares the same version. GitHub creates a new
 container package as private, so after the first release set the package
 `ghcr.io/viascom/github-maintenance-action` to public, or no workflow can pull the image.
 

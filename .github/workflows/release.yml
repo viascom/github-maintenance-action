@@ -12,6 +12,10 @@ on:
 permissions:
   contents: read
 
+# Two releases never run at once: the second would race the first for main and the tags.
+concurrency:
+  group: release
+
 env:
   IMAGE: viascom/github-maintenance-action
 
@@ -92,7 +96,8 @@ jobs:
       # The digest exists only after the push. Pushes with GITHUB_TOKEN do not start another run,
       # so moving the tags here does not trigger this workflow again. The tags move before the
       # push to main: main may have moved since the tag, and then the pin is applied again on
-      # top of the current main instead of failing the release.
+      # top of the current main instead of failing the release, as long as main still declares
+      # this version. A main that moved to another version keeps its own digest.
       - name: Pin action.yml to the image digest and move the tags
         env:
           DIGEST: ${{ steps.build.outputs.digest }}
@@ -109,6 +114,7 @@ jobs:
           git push origin HEAD:main || {
             git fetch origin main
             git checkout -q FETCH_HEAD
+            grep -qx "version = \"$VERSION\"" build.gradle || { echo "::warning::main declares another version, the pin stays on the tag"; exit 0; }
             pin
             git push origin HEAD:main
           }
